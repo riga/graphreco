@@ -3,6 +3,7 @@
 <use name="FWCore/ParameterSet" />
 <use name="FWCore/MessageLogger" />
 <use name="DataFormats/TrackReco" />
+<use name="RecoLocalCalo/HGCalRecAlgos" />
 <use name="PhysicsTools/TensorFlow" />
 
 <flags EDM_PLUGIN="1" />

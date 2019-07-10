@@ -10,14 +10,17 @@
 #include "FWCore/Framework/interface/Frameworkfwd.h"
 #include "FWCore/Framework/interface/MakerMacros.h"
 #include "FWCore/Framework/interface/stream/EDAnalyzer.h"
-
 #include "FWCore/Utilities/interface/Exception.h"
-
 #include "FWCore/MessageLogger/interface/MessageLogger.h"
-
 #include "FWCore/ParameterSet/interface/ParameterSet.h"
 
+#include "DataFormats/HGCRecHit/interface/HGCRecHitCollections.h"
+
+#include "RecoLocalCalo/HGCalRecAlgos/interface/RecHitTools.h"
+
 #include "PhysicsTools/TensorFlow/interface/TensorFlow.h"
+
+#include "RecoHGCal/GraphReco/interface/Window.h"
 
 // macros for simplified logs
 // message logger disabled for the moment
@@ -50,16 +53,46 @@ public:
     static void globalEndJob(const WindowInferenceCache*);
 
 private:
-    void beginJob();
+    void beginStream(edm::StreamID);
+    void endStream();
     void analyze(const edm::Event&, const edm::EventSetup&);
-    void endJob();
+
+    void createWindows();
+    void fillWindows(const edm::Event&);
+    void evaluateWindow(Window*);
+
+    // dummy function for the moment
+    void reconstructShowers();
+
+    // options
+    std::vector<edm::InputTag> recHitCollections_;
+    double minPhi_;
+    double maxPhi_;
+    double minEta_;
+    double maxEta_;
+    double deltaPhi_;
+    double deltaEta_;
+    double overlapPhi_;
+    double overlapEta_;
+    std::string inputTensorName_;
+    std::string outputTensorName_;
+    bool batchedModel_;
+    size_t padSize_;
 
     // per module copy, only the session is stored
     tensorflow::Session* session_;
 
-    // options
-    std::string inputTensorName_;
-    std::string outputTensorName_;
+    // tokens
+    std::vector<edm::EDGetTokenT<HGCRecHitCollection> > recHitTokens_;
+
+    // rechit tools
+    hgcal::RecHitTools recHitTools_;
+
+    // windows
+    std::vector<Window*> windows_;
+
+    // small value for numerical checks
+    double epsilon_;
 };
 
 std::unique_ptr<WindowInferenceCache> WindowInference::initializeGlobalCache(
@@ -90,10 +123,45 @@ void WindowInference::globalEndJob(const WindowInferenceCache* windowInferenceCa
 
 WindowInference::WindowInference(const edm::ParameterSet& config,
     const WindowInferenceCache* windowInferenceCache)
-    : session_(nullptr)
+    : recHitCollections_(config.getParameter<std::vector<edm::InputTag> >("recHitCollections"))
+    , minPhi_(config.getParameter<double>("minPhi"))
+    , maxPhi_(config.getParameter<double>("maxPhi"))
+    , minEta_(config.getParameter<double>("minEta"))
+    , maxEta_(config.getParameter<double>("maxEta"))
+    , deltaPhi_(config.getParameter<double>("deltaPhi"))
+    , deltaEta_(config.getParameter<double>("deltaEta"))
+    , overlapPhi_(config.getParameter<double>("overlapPhi"))
+    , overlapEta_(config.getParameter<double>("overlapEta"))
     , inputTensorName_(config.getParameter<std::string>("inputTensorName"))
     , outputTensorName_(config.getParameter<std::string>("outputTensorName"))
+    , batchedModel_(config.getParameter<bool>("batchedModel"))
+    , padSize_((size_t)config.getParameter<uint32_t>("padSize"))
+    , session_(nullptr)
+    , epsilon_(1e-7)
 {
+    // sanity checks for sliding windows
+    if (deltaPhi_ <= 0 || deltaEta_ <= 0 || overlapPhi_ <= 0 || overlapEta_ <= 0)
+    {
+        throw cms::Exception("IncorrectWindowParameters")
+            << "deltaPhi, deltaE, overlapPhi and overlapEta must be > 0";
+    }
+    else if (deltaPhi_ <= overlapPhi_)
+    {
+        throw cms::Exception("IncorrectWindowParameters")
+            << "deltaPhi must be larger than overlapPhi";
+    }
+    else if (deltaEta_ <= overlapEta_)
+    {
+        throw cms::Exception("IncorrectWindowParameters")
+            << "deltaEta must be larger than overlapEta";
+    }
+
+    // get tokens
+    for (edm::InputTag& recHitCollection : recHitCollections_)
+    {
+        recHitTokens_.push_back(consumes<HGCRecHitCollection>(recHitCollection));
+    }
+
     // mount the graphDef stored in windowInferenceCache onto the session
     session_ = tensorflow::createSession(windowInferenceCache->graphDef);
 }
@@ -102,38 +170,132 @@ WindowInference::~WindowInference()
 {
 }
 
-void WindowInference::beginJob()
+void WindowInference::beginStream(edm::StreamID streamId)
 {
+    createWindows();
 }
 
-void WindowInference::endJob()
+void WindowInference::endStream()
 {
     // close the session
     tensorflow::closeSession(session_);
     session_ = nullptr;
+
+    // delete windows
+    for (Window*& window : windows_)
+    {
+        delete window;
+        window = nullptr;
+    }
+    windows_.clear();
 }
 
 void WindowInference::analyze(const edm::Event& event, const edm::EventSetup& setup)
 {
-    tensorflow::Tensor input(tensorflow::DT_FLOAT, { 1, 100, 10 });
+    recHitTools_.getEventSetup(setup);
 
-    // test: fill all values with 0.01
-    float* d = input.flat<float>().data();
-    for (size_t i = 0; i < 100; i++, d++)
+    // fill rechits into windows
+    fillWindows(event);
+
+    // run the evaluation per window
+    for (Window* window : windows_)
     {
-        for (size_t j = 0; j < 10; j++, d++)
+        evaluateWindow(window);
+        std::cout << window->outputTensor.shape().DebugString() << std::endl;
+    }
+
+    // reconstruct showers using all windows and put them into the event
+    reconstructShowers();
+
+    // clear all windows
+    for (Window* window : windows_)
+    {
+        window->clear();
+    }
+}
+
+void WindowInference::createWindows()
+{
+    for (float phi = minPhi_; phi + epsilon_ < maxPhi_; phi += deltaPhi_ - overlapPhi_)
+    {
+        for (float eta = minEta_; eta + epsilon_ < maxEta_; eta += deltaEta_ - overlapEta_)
         {
-            *d = 0.01;
+            windows_.push_back(new Window(phi, phi + deltaPhi_, eta, eta + deltaEta_,
+                padSize_, 10, batchedModel_, inputTensorName_));
+        }
+    }
+
+    INFO << "built " << windows_.size() << " window(s)" << std::endl;
+}
+
+void WindowInference::fillWindows(const edm::Event& event)
+{
+    // read rechits from all collections and store them in appropriate windows
+    for (edm::EDGetTokenT<HGCRecHitCollection>& token : recHitTokens_)
+    {
+        edm::Handle<HGCRecHitCollection> handle;
+        event.getByToken(token, handle);
+        for (const HGCRecHit& recHit : *handle)
+        {
+            // TODO: right now, all windows are checked per rechit which might be stopped earlier
+            // e.g. in case in window rejects a rechit due to a too small eta value, and the
+            // subsequent windows have even higher eta ranges, but since overlap rules might be
+            // somewhat complex, go for the brute force approch for now
+            const GlobalPoint position = recHitTools_.getPosition(recHit.detid());
+            float phi = position.phi();
+            float eta = position.eta();
+            for (Window* window : windows_)
+            {
+                window->maybeAddRecHit(recHit, phi, eta);
+            }
+        }
+    }
+}
+
+void WindowInference::evaluateWindow(Window* window)
+{
+    // fill rechit features:
+    // energy, eta, phi, theta, r, x, y, z, detId, time
+    // most features are extracted from the GlobalPoint of the sensor which returns float types
+    // (https://github.com/cms-sw/cmssw/blob/master/DataFormats/GeometryVector/interface/GlobalPoint.h#L7)
+    float* d = window->inputTensor.flat<float>().data();
+    size_t nFilled = std::min<size_t>(window->getNRecHits(), padSize_);
+    for (size_t i = 0; i < nFilled; i++)
+    {
+        const HGCRecHit* recHit = window->recHits.at(i);
+        const GlobalPoint position = recHitTools_.getPosition(recHit->detid());
+        *(d++) = recHit->energy();
+        *(d++) = position.eta();
+        *(d++) = position.phi();
+        *(d++) = position.theta();
+        *(d++) = position.mag();
+        *(d++) = position.x();
+        *(d++) = position.y();
+        *(d++) = position.z();
+        *(d++) = (float)recHit->detid();
+        *(d++) = recHit->time();
+    }
+
+    // zero-padding of unfilled rechits
+    if (nFilled < padSize_)
+    {
+        for (size_t i = 0; i < (padSize_ - nFilled) * 10; i++)
+        {
+            *(d++) = 0.;
         }
     }
 
     // define the output and run
     std::vector<tensorflow::Tensor> outputs;
-    INFO << "evaluate" << std::endl;
-    tensorflow::run(session_, { { inputTensorName_, input } }, { outputTensorName_ }, &outputs);
+    tensorflow::run(session_, window->inputTensorList, { outputTensorName_ }, &outputs);
 
-    // check and print the output
-    INFO << outputs[0].DebugString() << std::endl;
+    // store the output in the window
+    window->outputTensor = outputs[0];
+}
+
+void WindowInference::reconstructShowers()
+{
+    // this is where the stitching magic happens
 }
 
 DEFINE_FWK_MODULE(WindowInference);

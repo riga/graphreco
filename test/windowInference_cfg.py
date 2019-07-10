@@ -32,17 +32,27 @@ if not os.path.exists(graph_path):
 
 # setup minimal options
 options = VarParsing("python")
-options.setDefault("inputFiles", "file:///eos/cms/store/cmst3/group/hgcal/CMG_studies/mrieger/hgcalsim/RecoTask/closeby_5.0To100.0_idsmix_dR0.4_n10_rnd1_s1/dev3_countRecHits/reco_0_n10.root")  # noqa: E501
+options.setDefault("inputFiles", "file:///eos/cms/store/cmst3/group/hgcal/CMG_studies/mrieger/hgcalsim/RecoTask/closeby_1.0To100.0_idsmix_dR0.1_n10_rnd1_s1/dev1_converter/reco_0_n2.root")  # noqa: E501
 options.parseArguments()
 
-# define the process to run
-process = cms.Process("HGR")
+# define the process to run for the Phase2 era
+from Configuration.Eras.Era_Phase2C8_cff import Phase2C8
+process = cms.Process("HGR", Phase2C8)
+
+# standard sequences and modules
+process.load("Configuration.StandardSequences.Services_cff")
+process.load("FWCore.MessageService.MessageLogger_cfi")
+process.load("Configuration.Geometry.GeometryExtended2023D41Reco_cff")
+process.load("Configuration.StandardSequences.FrontierConditions_GlobalTag_cff")
 
 # minimal configuration
-process.load("FWCore.MessageService.MessageLogger_cfi")
 process.MessageLogger.cerr.FwkReport.reportEvery = 1
 process.maxEvents = cms.untracked.PSet(input=cms.untracked.int32(10))
 process.source = cms.Source("PoolSource", fileNames=cms.untracked.vstring(options.inputFiles))
+
+# global tag
+from Configuration.AlCa.GlobalTag import GlobalTag
+process.GlobalTag = GlobalTag(process.GlobalTag, "auto:phase2_realistic", "")
 
 # process options
 process.options = cms.untracked.PSet(
@@ -55,8 +65,6 @@ from RecoHGCal.GraphReco.windowInference_cfi import windowInference
 
 process.windowInference = windowInference.clone(
     graphPath=cms.string(graph_path),
-    inputTensorName=cms.string("input"),
-    outputTensorName=cms.string("output"),
 )
 
 # define the path to run
