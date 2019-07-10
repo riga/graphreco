@@ -79,9 +79,6 @@ private:
     bool batchedModel_;
     size_t padSize_;
 
-    // per module copy, only the session is stored
-    tensorflow::Session* session_;
-
     // tokens
     std::vector<edm::EDGetTokenT<HGCRecHitCollection> > recHitTokens_;
 
@@ -91,7 +88,11 @@ private:
     // windows
     std::vector<Window*> windows_;
 
-    // small value for numerical checks
+    // the tensorflow session
+    tensorflow::Session* session_;
+
+    // hardcoded values
+    size_t nFeatures_;
     double epsilon_;
 };
 
@@ -137,6 +138,7 @@ WindowInference::WindowInference(const edm::ParameterSet& config,
     , batchedModel_(config.getParameter<bool>("batchedModel"))
     , padSize_((size_t)config.getParameter<uint32_t>("padSize"))
     , session_(nullptr)
+    , nFeatures_(10)
     , epsilon_(1e-7)
 {
     // sanity checks for sliding windows
@@ -221,7 +223,7 @@ void WindowInference::createWindows()
         for (float eta = minEta_; eta + epsilon_ < maxEta_; eta += deltaEta_ - overlapEta_)
         {
             windows_.push_back(new Window(phi, phi + deltaPhi_, eta, eta + deltaEta_,
-                padSize_, 10, batchedModel_, inputTensorName_));
+                padSize_, nFeatures_, batchedModel_, inputTensorName_));
         }
     }
 
@@ -279,7 +281,7 @@ void WindowInference::evaluateWindow(Window* window)
     // zero-padding of unfilled rechits
     if (nFilled < padSize_)
     {
-        for (size_t i = 0; i < (padSize_ - nFilled) * 10; i++)
+        for (size_t i = 0; i < (padSize_ - nFilled) * nFeatures_; i++)
         {
             *(d++) = 0.;
         }
