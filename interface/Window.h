@@ -28,6 +28,11 @@ struct Window
         setupTensors(padSize, nFeatures, batchedModel, inputTensorName);
     }
 
+    ~Window()
+    {
+        clear();
+    }
+
     void setupTensors(size_t padSize, size_t nFeatures, bool batchedModel,
         std::string& inputTensorName)
     {
