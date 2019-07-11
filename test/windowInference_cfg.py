@@ -12,20 +12,18 @@ import FWCore.ParameterSet.Config as cms
 from FWCore.ParameterSet.VarParsing import VarParsing
 
 
-# helper to determine the location if _this_ file
-def get_this_dir():
-    if "__file__" in globals():
-        return os.path.dirname(os.path.abspath(__file__))
-    else:
-        return os.path.expandvars("$CMSSW_BASE/src/RecoHGCal/GraphReco/test")
-
+# determine the location of _this_ file
+if "__file__" in globals():
+    this_dir = os.path.dirname(os.path.abspath(__file__))
+else:
+    this_dir = os.path.expandvars("$CMSSW_BASE/src/RecoHGCal/GraphReco/test")
 
 # ensure that the graph exists
 # if not, call the create_dummy_graph.py script in a subprocess since tensorflow complains
 # when its loaded twice (once here in python, once in c++)
-graph_path = os.path.abspath("graph.pb")
+graph_path = os.path.join(this_dir, "graph.pb")
 if not os.path.exists(graph_path):
-    script_path = os.path.join(get_this_dir(), "create_dummy_graph.py")
+    script_path = os.path.join(this_dir, "create_dummy_graph.py")
     code = subprocess.call(["python", script_path, graph_path])
     if code != 0:
         raise Exception("create_dummy_graph.py failed")
@@ -62,7 +60,6 @@ process.options = cms.untracked.PSet(
 
 # load and configure the windowInference module
 from RecoHGCal.GraphReco.windowInference_cfi import windowInference
-
 process.windowInference = windowInference.clone(
     graphPath=cms.string(graph_path),
 )

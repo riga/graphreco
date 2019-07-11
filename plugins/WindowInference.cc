@@ -60,6 +60,7 @@ private:
     void createWindows();
     void fillWindows(const edm::Event&);
     void evaluateWindow(Window*);
+    void fillRecHitFeatures(const HGCRecHit*, float*);
 
     // dummy function for the moment
     void reconstructShowers();
@@ -139,7 +140,7 @@ WindowInference::WindowInference(const edm::ParameterSet& config,
     , padSize_((size_t)config.getParameter<uint32_t>("padSize"))
     , session_(nullptr)
     , nFeatures_(10)
-    , epsilon_(1e-7)
+    , epsilon_(1e-5)
 {
     // sanity checks for sliding windows
     if (deltaPhi_ <= 0 || deltaEta_ <= 0 || overlapPhi_ <= 0 || overlapEta_ <= 0)
@@ -203,7 +204,7 @@ void WindowInference::analyze(const edm::Event& event, const edm::EventSetup& se
     for (Window* window : windows_)
     {
         evaluateWindow(window);
-        std::cout << window->outputTensor.shape().DebugString() << std::endl;
+        // std::cout << window->outputTensor.shape().DebugString() << std::endl;
     }
 
     // reconstruct showers using all windows and put them into the event
@@ -256,26 +257,13 @@ void WindowInference::fillWindows(const edm::Event& event)
 
 void WindowInference::evaluateWindow(Window* window)
 {
-    // fill rechit features:
-    // energy, eta, phi, theta, r, x, y, z, detId, time
-    // most features are extracted from the GlobalPoint of the sensor which returns float types
-    // (https://github.com/cms-sw/cmssw/blob/master/DataFormats/GeometryVector/interface/GlobalPoint.h#L7)
-    float* d = window->inputTensor.flat<float>().data();
+    // fill rechit features
+    float* data = window->inputTensor.flat<float>().data();
     size_t nFilled = std::min<size_t>(window->getNRecHits(), padSize_);
     for (size_t i = 0; i < nFilled; i++)
     {
         const HGCRecHit* recHit = window->recHits.at(i);
-        const GlobalPoint position = recHitTools_.getPosition(recHit->detid());
-        *(d++) = recHit->energy();
-        *(d++) = position.eta();
-        *(d++) = position.phi();
-        *(d++) = position.theta();
-        *(d++) = position.mag();
-        *(d++) = position.x();
-        *(d++) = position.y();
-        *(d++) = position.z();
-        *(d++) = (float)recHit->detid();
-        *(d++) = recHit->time();
+        fillRecHitFeatures(recHit, data);
     }
 
     // zero-padding of unfilled rechits
@@ -283,7 +271,7 @@ void WindowInference::evaluateWindow(Window* window)
     {
         for (size_t i = 0; i < (padSize_ - nFilled) * nFeatures_; i++)
         {
-            *(d++) = 0.;
+            *(data++) = 0.;
         }
     }
 
@@ -293,6 +281,27 @@ void WindowInference::evaluateWindow(Window* window)
 
     // store the output in the window
     window->outputTensor = outputs[0];
+}
+
+void WindowInference::fillRecHitFeatures(const HGCRecHit* recHit, float* data)
+{
+    // fill rechit features: energy, eta, phi, theta, r, x, y, z, detId, time
+    // all features _must_ be float types, or otherwise the float pointer arithmetic will break
+    // most features are extracted from the GlobalPoint of the sensor which already uses float types
+    // (https://github.com/cms-sw/cmssw/blob/master/DataFormats/GeometryVector/interface/GlobalPoint.h#L7)
+
+    const GlobalPoint position = recHitTools_.getPosition(recHit->detid());
+
+    *(data++) = recHit->energy();
+    *(data++) = position.eta();
+    *(data++) = position.phi();
+    *(data++) = position.theta();
+    *(data++) = position.mag();
+    *(data++) = position.x();
+    *(data++) = position.y();
+    *(data++) = position.z();
+    *(data++) = (float)recHit->detid();
+    *(data++) = recHit->time();
 }
 
 void WindowInference::reconstructShowers()
