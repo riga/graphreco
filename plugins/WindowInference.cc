@@ -94,6 +94,7 @@ private:
 
     // hardcoded values
     size_t nFeatures_;
+    float zero_;
     double epsilon_;
 };
 
@@ -140,6 +141,7 @@ WindowInference::WindowInference(const edm::ParameterSet& config,
     , padSize_((size_t)config.getParameter<uint32_t>("padSize"))
     , session_(nullptr)
     , nFeatures_(10)
+    , zero_(0.)
     , epsilon_(1e-5)
 {
     // sanity checks for sliding windows
@@ -271,7 +273,7 @@ void WindowInference::evaluateWindow(Window* window)
     {
         for (size_t i = 0; i < (padSize_ - nFilled) * nFeatures_; i++)
         {
-            *(data++) = 0.;
+            *(data++) = zero_;
         }
     }
 

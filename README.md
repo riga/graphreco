@@ -10,9 +10,9 @@ export CMSSW_VERSION="CMSSW_11_0_0_pre3"
 
 # setup CMSSW
 source "/cvmfs/cms.cern.ch/cmsset_default.sh" ""
-scramv1 project CMSSW "$CMSSW_VERSION"
+cmsrel $CMSSW_VERSION
 cd "$CMSSW_VERSION/src"
-eval `scramv1 runtime -sh`
+cmsenv
 
 # setup the graphreco repo
 git clone git@github.com:riga/graphreco.git RecoHGCal/GraphReco
