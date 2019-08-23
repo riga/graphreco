@@ -8,48 +8,42 @@
  * Author: Marcel Rieger <marcel.rieger@cern.ch>
  */
 
-#ifndef RECOHGCAL_GRAPHRECO_WINDOW_H
-#define RECOHGCAL_GRAPHRECO_WINDOW_H
-
+#ifndef RECOHGCAL_GRAPHRECO_INTERFACE_WINDOW_H_
+#define RECOHGCAL_GRAPHRECO_INTERFACE_WINDOW_H_
+#include <string>
+#include <vector>
 #include "DataFormats/Math/interface/deltaPhi.h"
+#include "PhysicsTools/TensorFlow/interface/TensorFlow.h"
 
-struct Window
-{
-    Window(double startPhi, double endPhi, double startEta, double endEta)
-        : startPhi(startPhi)
-        , endPhi(endPhi)
-        , startEta(startEta)
-        , endEta(endEta)
-    {
+struct Window {
+    Window(double startPhi, double endPhi, double startEta, double endEta) :
+            startPhi(startPhi), endPhi(endPhi), startEta(startEta), endEta(
+                    endEta) {
     }
 
-    Window(double startPhi, double endPhi, double startEta, double endEta, size_t padSize,
-        size_t nFeatures, bool batchedModel, std::string& inputTensorName)
-        : Window(startPhi, endPhi, startEta, endEta)
-    {
+    Window(double startPhi, double endPhi, double startEta, double endEta,
+            size_t padSize, size_t nFeatures, bool batchedModel,
+            const std::string& inputTensorName) :
+            Window(startPhi, endPhi, startEta, endEta) {
         setupTensors(padSize, nFeatures, batchedModel, inputTensorName);
     }
 
-    ~Window()
-    {
+    ~Window() {
         clear();
     }
 
     void setupTensors(size_t padSize, size_t nFeatures, bool batchedModel,
-        std::string& inputTensorName)
-    {
-        tensorflow::TensorShape shape = { (int)padSize, (int)nFeatures };
-        if (batchedModel)
-        {
+            const std::string& inputTensorName) {
+        tensorflow::TensorShape shape = { (int) padSize, (int) nFeatures };
+        if (batchedModel) {
             shape.InsertDim(0, 1);
         }
 
         inputTensor = tensorflow::Tensor(tensorflow::DT_FLOAT, shape);
-        inputTensorList = { { inputTensorName, inputTensor } };
+        inputTensorList = { {inputTensorName, inputTensor}};
     }
 
-    inline void addRecHit(const HGCRecHit& recHit)
-    {
+    inline void addRecHit(const HGCRecHit& recHit) {
         recHits.push_back(&recHit);
         /*
          * fill the rechit features in the tensors
@@ -57,31 +51,26 @@ struct Window
          */
     }
 
-    inline bool acceptsRecHit(const HGCRecHit& recHit, float phi, float eta) const
-    {
-
-        return  reco::deltaPhi(phi,startPhi)>0
-                && reco::deltaPhi(endPhi,phi)>=0
-                && eta >= startEta && eta < endEta;
+    inline bool acceptsRecHit(const HGCRecHit& recHit,
+            float phi, float eta) const {
+        return reco::deltaPhi(phi, startPhi) > 0
+        && reco::deltaPhi(endPhi, phi) >= 0
+        && eta >= startEta && eta < endEta;
     }
 
-    inline bool maybeAddRecHit(const HGCRecHit& recHit, float phi, float eta)
-    {
-        if (acceptsRecHit(recHit, phi, eta))
-        {
+    inline bool maybeAddRecHit(const HGCRecHit& recHit, float phi, float eta) {
+        if (acceptsRecHit(recHit, phi, eta)) {
             addRecHit(recHit);
             return true;
         }
         return false;
     }
 
-    inline size_t getNRecHits() const
-    {
+    inline size_t getNRecHits() const {
         return recHits.size();
     }
 
-    inline void clear()
-    {
+    inline void clear() {
         recHits.clear();
     }
 
@@ -95,4 +84,4 @@ struct Window
     tensorflow::Tensor outputTensor;
 };
 
-#endif // RECOHGCAL_GRAPHRECO_WINDOW_H
+#endif  // RECOHGCAL_GRAPHRECO_INTERFACE_WINDOW_H_

@@ -32,27 +32,27 @@
 #define ERROR std::cout << "WindowInference ERROR  : "
 
 // datastructure hold by edm::GlobalCache
-struct WindowInferenceCache
-{
-    WindowInferenceCache(const edm::ParameterSet& config)
-        : graphDef(nullptr)
-    {
+struct WindowInferenceCache {
+    WindowInferenceCache(const edm::ParameterSet& config) :
+            graphDef(nullptr) {
     }
 
     std::atomic<tensorflow::GraphDef*> graphDef;
 };
 
-class WindowInference : public edm::stream::EDAnalyzer<edm::GlobalCache<WindowInferenceCache> >
-{
-public:
-    explicit WindowInference(const edm::ParameterSet&, const WindowInferenceCache*);
+class WindowInference: public edm::stream::EDAnalyzer<
+        edm::GlobalCache<WindowInferenceCache> > {
+ public:
+    explicit WindowInference(const edm::ParameterSet&,
+            const WindowInferenceCache*);
     ~WindowInference();
 
     // methods for handling the global cache
-    static std::unique_ptr<WindowInferenceCache> initializeGlobalCache(const edm::ParameterSet&);
+    static std::unique_ptr<WindowInferenceCache> initializeGlobalCache(
+            const edm::ParameterSet&);
     static void globalEndJob(const WindowInferenceCache*);
 
-private:
+ private:
     void beginStream(edm::StreamID);
     void endStream();
     void analyze(const edm::Event&, const edm::EventSetup&);
@@ -99,14 +99,15 @@ private:
 };
 
 std::unique_ptr<WindowInferenceCache> WindowInference::initializeGlobalCache(
-    const edm::ParameterSet& config)
-{
-    // this method is supposed to create, initialize and return a WindowInferenceCache instance
-    WindowInferenceCache* windowInferenceCache = new WindowInferenceCache(config);
+        const edm::ParameterSet& config) {
+    // this method is supposed to create, initialize and
+    //return a WindowInferenceCache instance
+    WindowInferenceCache* windowInferenceCache = new WindowInferenceCache(
+            config);
 
     // load the graph def and save it
     std::string graphPath = config.getParameter<std::string>("graphPath");
-    INFO << "loading graph from " << graphPath << std::endl;
+    INFO<< "loading graph from " << graphPath << std::endl;
     windowInferenceCache->graphDef = tensorflow::loadGraphDef(graphPath);
 
     // set some global configs, such as the TF log level
@@ -115,96 +116,84 @@ std::unique_ptr<WindowInferenceCache> WindowInference::initializeGlobalCache(
     return std::unique_ptr<WindowInferenceCache>(windowInferenceCache);
 }
 
-void WindowInference::globalEndJob(const WindowInferenceCache* windowInferenceCache)
-{
+void WindowInference::globalEndJob(
+        const WindowInferenceCache* windowInferenceCache) {
     // reset the graphDef
-    if (windowInferenceCache->graphDef != nullptr)
-    {
+    if (windowInferenceCache->graphDef != nullptr) {
         delete windowInferenceCache->graphDef;
     }
 }
 
 WindowInference::WindowInference(const edm::ParameterSet& config,
-    const WindowInferenceCache* windowInferenceCache)
-    : recHitCollections_(config.getParameter<std::vector<edm::InputTag> >("recHitCollections"))
-    , minPhi_(config.getParameter<double>("minPhi"))
-    , maxPhi_(config.getParameter<double>("maxPhi"))
-    , minEta_(config.getParameter<double>("minEta"))
-    , maxEta_(config.getParameter<double>("maxEta"))
-    , deltaPhi_(config.getParameter<double>("deltaPhi"))
-    , deltaEta_(config.getParameter<double>("deltaEta"))
-    , overlapPhi_(config.getParameter<double>("overlapPhi"))
-    , overlapEta_(config.getParameter<double>("overlapEta"))
-    , inputTensorName_(config.getParameter<std::string>("inputTensorName"))
-    , outputTensorName_(config.getParameter<std::string>("outputTensorName"))
-    , batchedModel_(config.getParameter<bool>("batchedModel"))
-    , padSize_((size_t)config.getParameter<uint32_t>("padSize"))
-    , session_(nullptr)
-    , nFeatures_(10)
-    , zero_(0.)
-    , epsilon_(1e-5)
-{
+        const WindowInferenceCache* windowInferenceCache) :
+        recHitCollections_(
+                config.getParameter<std::vector<edm::InputTag> >(
+                        "recHitCollections")),
+        minPhi_(config.getParameter<double>("minPhi")),
+        maxPhi_(config.getParameter<double>("maxPhi")),
+        minEta_(config.getParameter<double>("minEta")),
+        maxEta_(config.getParameter<double>("maxEta")),
+        deltaPhi_(config.getParameter<double>("deltaPhi")),
+        deltaEta_(config.getParameter<double>("deltaEta")),
+        overlapPhi_(config.getParameter<double>("overlapPhi")),
+        overlapEta_(config.getParameter<double>("overlapEta")),
+        inputTensorName_(config.getParameter<std::string>("inputTensorName")),
+        outputTensorName_(config.getParameter<std::string>("outputTensorName")),
+        batchedModel_(config.getParameter<bool>("batchedModel")), padSize_(
+        (size_t) config.getParameter<uint32_t>("padSize")), session_(
+        nullptr), nFeatures_(10), zero_(0.), epsilon_(1e-5) {
     // sanity checks for sliding windows
-    if (deltaPhi_ <= 0 || deltaEta_ <= 0 || overlapPhi_ <= 0 || overlapEta_ <= 0)
-    {
+    if (deltaPhi_ <= 0 || deltaEta_ <= 0 || overlapPhi_ <= 0
+            || overlapEta_ <= 0) {
         throw cms::Exception("IncorrectWindowParameters")
-            << "deltaPhi, deltaE, overlapPhi and overlapEta must be > 0";
-    }
-    else if (deltaPhi_ <= overlapPhi_)
-    {
+                << "deltaPhi, deltaE, overlapPhi and overlapEta must be > 0";
+    } else if (deltaPhi_ <= overlapPhi_) {
         throw cms::Exception("IncorrectWindowParameters")
-            << "deltaPhi must be larger than overlapPhi";
-    }
-    else if (deltaEta_ <= overlapEta_)
-    {
+                << "deltaPhi must be larger than overlapPhi";
+    } else if (deltaEta_ <= overlapEta_) {
         throw cms::Exception("IncorrectWindowParameters")
-            << "deltaEta must be larger than overlapEta";
+                << "deltaEta must be larger than overlapEta";
     }
 
     // get tokens
-    for (edm::InputTag& recHitCollection : recHitCollections_)
-    {
-        recHitTokens_.push_back(consumes<HGCRecHitCollection>(recHitCollection));
+    for (edm::InputTag& recHitCollection : recHitCollections_) {
+        recHitTokens_.push_back(
+                consumes<HGCRecHitCollection>(recHitCollection));
     }
 
     // mount the graphDef stored in windowInferenceCache onto the session
     session_ = tensorflow::createSession(windowInferenceCache->graphDef);
 }
 
-WindowInference::~WindowInference()
-{
+WindowInference::~WindowInference() {
 }
 
-void WindowInference::beginStream(edm::StreamID streamId)
-{
+void WindowInference::beginStream(edm::StreamID streamId) {
     createWindows();
 }
 
-void WindowInference::endStream()
-{
+void WindowInference::endStream() {
     // close the session
     tensorflow::closeSession(session_);
     session_ = nullptr;
 
     // delete windows
-    for (Window*& window : windows_)
-    {
+    for (Window*& window : windows_) {
         delete window;
         window = nullptr;
     }
     windows_.clear();
 }
 
-void WindowInference::analyze(const edm::Event& event, const edm::EventSetup& setup)
-{
+void WindowInference::analyze(const edm::Event& event,
+        const edm::EventSetup& setup) {
     recHitTools_.getEventSetup(setup);
 
     // fill rechits into windows
     fillWindows(event);
 
     // run the evaluation per window
-    for (Window* window : windows_)
-    {
+    for (Window* window : windows_) {
         evaluateWindow(window);
         // std::cout << window->outputTensor.shape().DebugString() << std::endl;
     }
@@ -213,80 +202,73 @@ void WindowInference::analyze(const edm::Event& event, const edm::EventSetup& se
     reconstructShowers();
 
     // clear all windows
-    for (Window* window : windows_)
-    {
+    for (Window* window : windows_) {
         window->clear();
     }
 }
 
-void WindowInference::createWindows()
-{
-    for (float phi = minPhi_; phi + epsilon_ < maxPhi_; phi += deltaPhi_ - overlapPhi_)
-    {
-        for (float eta = minEta_; eta + epsilon_ < maxEta_; eta += deltaEta_ - overlapEta_)
-        {
-            windows_.push_back(new Window(phi, phi + deltaPhi_, eta, eta + deltaEta_,
-                padSize_, nFeatures_, batchedModel_, inputTensorName_));
+void WindowInference::createWindows() {
+    for (float phi = minPhi_; phi + epsilon_ < maxPhi_;
+            phi += deltaPhi_ - overlapPhi_) {
+        for (float eta = minEta_; eta + epsilon_ < maxEta_;
+                eta += deltaEta_ - overlapEta_) {
+            windows_.push_back(
+                    new Window(phi, phi + deltaPhi_, eta, eta + deltaEta_,
+                            padSize_, nFeatures_, batchedModel_,
+                            inputTensorName_));
         }
     }
 
-    INFO << "built " << windows_.size() << " window(s)" << std::endl;
+    INFO<< "built " << windows_.size() << " window(s)" << std::endl;
 }
 
-void WindowInference::fillWindows(const edm::Event& event)
-{
+void WindowInference::fillWindows(const edm::Event& event) {
     // read rechits from all collections and store them in appropriate windows
-    for (edm::EDGetTokenT<HGCRecHitCollection>& token : recHitTokens_)
-    {
+    for (edm::EDGetTokenT<HGCRecHitCollection>& token : recHitTokens_) {
         edm::Handle<HGCRecHitCollection> handle;
         event.getByToken(token, handle);
-        for (const HGCRecHit& recHit : *handle)
-        {
+        for (const HGCRecHit& recHit : *handle) {
             // TODO: right now, all windows are checked per rechit which might be stopped earlier
             // e.g. in case in window rejects a rechit due to a too small eta value, and the
             // subsequent windows have even higher eta ranges, but since overlap rules might be
             // somewhat complex, go for the brute force approch for now
-            const GlobalPoint position = recHitTools_.getPosition(recHit.detid());
+            const GlobalPoint position = recHitTools_.getPosition(
+                    recHit.detid());
             float phi = position.phi();
             float eta = position.eta();
-            for (Window* window : windows_)
-            {
+            for (Window* window : windows_) {
                 window->maybeAddRecHit(recHit, phi, eta);
             }
         }
     }
 }
 
-void WindowInference::evaluateWindow(Window* window)
-{
+void WindowInference::evaluateWindow(Window* window) {
     // fill rechit features
     float* data = window->inputTensor.flat<float>().data();
     size_t nFilled = std::min<size_t>(window->getNRecHits(), padSize_);
-    for (size_t i = 0; i < nFilled; i++)
-    {
+    for (size_t i = 0; i < nFilled; i++) {
         const HGCRecHit* recHit = window->recHits.at(i);
         fillRecHitFeatures(recHit, data);
     }
 
     // zero-padding of unfilled rechits
-    if (nFilled < padSize_)
-    {
-        for (size_t i = 0; i < (padSize_ - nFilled) * nFeatures_; i++)
-        {
+    if (nFilled < padSize_) {
+        for (size_t i = 0; i < (padSize_ - nFilled) * nFeatures_; i++) {
             *(data++) = zero_;
         }
     }
 
     // define the output and run
     std::vector<tensorflow::Tensor> outputs;
-    tensorflow::run(session_, window->inputTensorList, { outputTensorName_ }, &outputs);
+    tensorflow::run(session_, window->inputTensorList, { outputTensorName_ },
+            &outputs);
 
     // store the output in the window
     window->outputTensor = outputs[0];
 }
 
-void WindowInference::fillRecHitFeatures(const HGCRecHit* recHit, float* data)
-{
+void WindowInference::fillRecHitFeatures(const HGCRecHit* recHit, float* data) {
     // fill rechit features: energy, eta, phi, theta, r, x, y, z, detId, time
     // all features _must_ be float types, or otherwise the float pointer arithmetic will break
     // most features are extracted from the GlobalPoint of the sensor which already uses float types
@@ -302,12 +284,11 @@ void WindowInference::fillRecHitFeatures(const HGCRecHit* recHit, float* data)
     *(data++) = position.x();
     *(data++) = position.y();
     *(data++) = position.z();
-    *(data++) = (float)recHit->detid();
+    *(data++) = (float) recHit->detid();
     *(data++) = recHit->time();
 }
 
-void WindowInference::reconstructShowers()
-{
+void WindowInference::reconstructShowers() {
     // this is where the stitching magic happens
 }
 
