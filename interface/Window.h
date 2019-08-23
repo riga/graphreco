@@ -11,6 +11,8 @@
 #ifndef RECOHGCAL_GRAPHRECO_WINDOW_H
 #define RECOHGCAL_GRAPHRECO_WINDOW_H
 
+#include "DataFormats/Math/interface/deltaPhi.h"
+
 struct Window
 {
     Window(double startPhi, double endPhi, double startEta, double endEta)
@@ -49,11 +51,18 @@ struct Window
     inline void addRecHit(const HGCRecHit& recHit)
     {
         recHits.push_back(&recHit);
+        /*
+         * fill the rechit features in the tensors
+         * Also, calculate relative coordinates w.r.t. the window in particular for phi!
+         */
     }
 
     inline bool acceptsRecHit(const HGCRecHit& recHit, float phi, float eta) const
     {
-        return phi >= startPhi && phi < endPhi && eta >= startEta && eta < endEta;
+
+        return  reco::deltaPhi(phi,startPhi)>0
+                && reco::deltaPhi(endPhi,phi)>=0
+                && eta >= startEta && eta < endEta;
     }
 
     inline bool maybeAddRecHit(const HGCRecHit& recHit, float phi, float eta)
