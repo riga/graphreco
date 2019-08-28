@@ -5,5 +5,9 @@
 <use name="DataFormats/TrackReco" />
 <use name="RecoLocalCalo/HGCalRecAlgos" />
 <use name="PhysicsTools/TensorFlow" />
+<use name="root"/>
+
+<use name="RecoHGCal/GraphReco"/>
+
 
 <flags EDM_PLUGIN="1" />
