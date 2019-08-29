@@ -70,6 +70,15 @@ void Window::evaluate(tensorflow::Session* sess) {
 */
 }//FIXME
 
+void Window::fillTTreeTrackFeatures(std::vector<std::vector<float > > * array) const{
+    array->clear();
+    for(const auto& t:tracks_){
+        std::vector<float > features(nTrackFeatures_);
+        auto data = &features.at(0);
+        fillTrackFeatures(data, &t);
+        array->push_back(features);
+    }
+}
 
 void Window::fillTTreeRechitFeatures(std::vector<std::vector<float > > * array) const{
     array->clear();
@@ -119,6 +128,14 @@ void Window::fillTTreeTruthEnergies(std::vector<std::vector<float > > * array) c
 }
 
 //// private ////
+
+const size_t Window::nTrackFeatures_=5;
+void Window::fillTrackFeatures(float*& data, const TrackWithHGCalPos * ) const {
+    //uses tracjs
+    //creates inputTensorList
+    // float* data
+    // same for filling the output vector for root tuples
+}//FIXME
 
 const size_t Window::nRechitFeatures_=10;
 void Window::fillRecHitFeatures(float*& data, const HGCRecHitWithPos * recHit) const {

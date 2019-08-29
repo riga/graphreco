@@ -76,6 +76,7 @@ class WindowNTupler : public edm::one::EDAnalyzer<edm::one::SharedResources>  {
       edm::Service<TFileService> fs_;
       TTree * outTree_;
 
+      std::vector<std::vector<float> > * trackFeatures_;
     std::vector<std::vector<float> > * rechitFeatures_;
     std::vector<std::vector<float> > * layerClusterFeatures_;
     std::vector<std::vector<float> > * truthFractions_;
@@ -101,6 +102,7 @@ WindowNTupler::WindowNTupler(const edm::ParameterSet& config)
   layerClusters_(consumes<reco::CaloClusterCollection>(config.getUntrackedParameter<edm::InputTag>("layerClusters"))),
   simClusters_(consumes<std::vector<SimCluster>>(config.getUntrackedParameter<edm::InputTag>("simClusters"))),
   outTree_(nullptr),
+  trackFeatures_(new std::vector<std::vector<float> >()),
   rechitFeatures_(new std::vector<std::vector<float> >()),
   layerClusterFeatures_(new std::vector<std::vector<float> >()),
   truthFractions_(new std::vector<std::vector<float> >()),
@@ -147,14 +149,35 @@ void
 WindowNTupler::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
 {
    using namespace edm;
-   std::vector<TrackWithHGCalPos> trackswithpos;
+
+   //prepare collections
+
+   //tracks
    HGCalTrackPropagator trackprop(iSetup);
-   for(const auto& track : iEvent.get(tracksToken_) ) {
-       auto propTrack = trackprop.propagateTrack(track);
-       trackswithpos.push_back(propTrack);
+
+   std::vector<TrackWithHGCalPos> proptracks;
+   for(const auto& t: iEvent.get(tracksToken_))
+       proptracks.push_back(trackprop.propagateTrack(t));
+   std::vector<size_t> filledtrack(proptracks.size(),0);
+
+   //rechits
+   //filledrechits vector etc
+
+   for(auto& window : windows_){
+       for(size_t it=0;it<proptracks.size();it++) {
+           if(filledtrack.at(it)>3) continue;
+           if(window.maybeAddTrack(proptracks.at(it)))
+               filledtrack.at(it)++;
+       }
+       window.fillTTreeTrackFeatures(trackFeatures_);
+
+
+       //rechits etc...
+
+       outTree_->Fill();
    }
 
-/// and fill the windows
+
 }
 
 
@@ -167,6 +190,7 @@ void WindowNTupler::beginJob() {
     }
 
     outTree_ = fs_->make<TTree>("tree", "tree");
+    outTree_->Branch("trackFeatures",&trackFeatures_);
     outTree_->Branch("rechitFeatures",&rechitFeatures_);
     outTree_->Branch("layerClusterFeatures",&layerClusterFeatures_);
     outTree_->Branch("truthFractions",&truthFractions_);

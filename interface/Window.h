@@ -124,9 +124,13 @@ public:
 
     void evaluate(tensorflow::Session* sess);
 
+    //FIXME: TBI, also with useful output, not void
+    void getOutput() const{}
+
     //for output
 
     //gets size checks and adjustments before calling private fill
+    void fillTTreeTrackFeatures(std::vector<std::vector<float > > * array) const;
     void fillTTreeRechitFeatures(std::vector<std::vector<float > > * array) const;
     void fillTTreeLayerClusterFeatures(std::vector<std::vector<float > > * array) const;
     void fillTTreeTruthFractions(std::vector<std::vector<float > > * array) const;
@@ -167,6 +171,8 @@ public:
 
 
 private:
+    //for one track
+    void fillTrackFeatures(float*& data, const TrackWithHGCalPos *) const;
     //for one rechit
     void fillRecHitFeatures(float*& data, const HGCRecHitWithPos * ) const;
     //for one layer cluster
@@ -194,6 +200,7 @@ private:
     tensorflow::Tensor outputTensor;
     std::string outputTensorName_;
 
+    static const size_t nTrackFeatures_;
     static const size_t nRechitFeatures_;
     static const size_t nLayerClusterFeatures_;
 };
