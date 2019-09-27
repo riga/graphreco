@@ -25,6 +25,10 @@ std::vector<float>  * NTupleWindow::sp_truthSimclusterEnergies_=0;
 std::vector<float>  * NTupleWindow::sp_truthSimclusterEtas_=0;
 std::vector<float>  * NTupleWindow::sp_truthSimclusterPhis_=0;
 
+
+float * NTupleWindow::sp_windowEta_=0;
+float * NTupleWindow::sp_windowPhi_=0;
+
 //static
 std::vector<NTupleWindow> NTupleWindow::createWindows(size_t nSegmentsPhi,
             size_t nSegmentsEta, double minEta, double maxEta, double frameWidthEta,
@@ -55,6 +59,9 @@ void NTupleWindow::createTreeBranches(TTree* t){
     t->Branch("truthSimclusterEtas",&sp_truthSimclusterEtas_);
     t->Branch("truthSimclusterPhis",&sp_truthSimclusterPhis_);
 
+    t->Branch("windowEta",sp_windowEta_);
+    t->Branch("windowPhi",sp_windowPhi_);
+
 }
 
 NTupleWindow::NTupleWindow(float centerEta, float centerPhi,
@@ -62,6 +69,9 @@ NTupleWindow::NTupleWindow(float centerEta, float centerPhi,
         float innerRegionDPhi) :
         WindowBase(centerEta, centerPhi, outerRegionDEta, outerRegionDPhi,
                 innerRegionDEta, innerRegionDPhi) {
+
+    windowEta_ = centerEta;
+    windowPhi_ = centerPhi;
 }
 
 
@@ -84,6 +94,9 @@ void NTupleWindow::assignTreePointers()  {
     sp_truthSimclusterEnergies_ = &truthSimclusterEnergies_;
     sp_truthSimclusterEtas_ = &truthSimclusterEtas_;
     sp_truthSimclusterPhis_ = &truthSimclusterPhis_;
+
+    sp_windowEta_ = &windowEta_;
+    sp_windowPhi_ = &windowPhi_;
 
 }
 
@@ -108,6 +121,8 @@ void NTupleWindow::clear(){
     truthSimclusterEnergies_.clear();
     truthSimclusterEtas_.clear();
     truthSimclusterPhis_.clear();
+
+
 
 }
 
@@ -218,14 +233,22 @@ void NTupleWindow::calculateTruthFractions(){
 
     //match, will be improved by direct truth matching in new simclusters on longer term
     //assumption: for every track there is charged simcluster
+    /*
+     *
+     * this is just a temporary solution until a proper simcluster-simtrack integration exists
+     *
+     */
     std::vector<size_t> usedSimclusters;
+
+    float debug_ntrackwithnoSC=0;
 
     for(size_t i_t=0;i_t<tracks_.size();i_t++){
 
-        const double momentumscaler = 0.1;
+        const double momentumscaler = 0.0001;
         double minDistance=0.1 + 0.1;
 
         size_t matchedSCIdx=simClusters_.size();
+        double distance = 0;
         for(size_t i_sc=0;i_sc<simClusters_.size();i_sc++){
             if(fabs(simClusters_.at(i_sc)->charge())<0.1)
                 continue;
@@ -233,18 +256,30 @@ void NTupleWindow::calculateTruthFractions(){
                 continue;
             double scEnergy = simClusters_.at(i_sc)->p4().E();
             double trackMomentum = tracks_.at(i_t)->track->p();
-            double distance = reco::deltaR(simClusters_.at(i_sc)->eta(),
+            distance = reco::deltaR(simClusters_.at(i_sc)->eta(),
                     simClusters_.at(i_sc)->phi(),
                     (float)tracks_.at(i_t)->pos.eta(),
                     (float)tracks_.at(i_t)->pos.phi()) +
                             momentumscaler*std::abs(scEnergy - trackMomentum)/(scEnergy);
 
-            if(distance<minDistance)
+            if(distance<minDistance){
                 matchedSCIdx=i_sc;
+                minDistance=distance;
+            }
         }
-        truthHitFractions_.at(i_t+trackStartIterator).at(matchedSCIdx) = 1.;
-        usedSimclusters.push_back(matchedSCIdx);
+        if(matchedSCIdx<simClusters_.size()){
+            truthHitFractions_.at(i_t+trackStartIterator).at(matchedSCIdx) = 1.;
+            usedSimclusters.push_back(matchedSCIdx);
+        }
+        else{
+            debug_ntrackwithnoSC++;
+            DEBUGPRINT(distance);
+            DEBUGPRINT(tracks_.at(i_t)->track->p());
+            DEBUGPRINT(tracks_.at(i_t)->track->eta());
+        }
     }
+    DEBUGPRINT(debug_ntrackwithnoSC);
+    DEBUGPRINT(debug_ntrackwithnoSC/(float)tracks_.size());
 }
 
 

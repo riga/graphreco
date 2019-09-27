@@ -33,6 +33,9 @@ options = VarParsing("python")
 options.setDefault("inputFiles", "file:///eos/cms/store/cmst3/group/hgcal/CMG_studies/hgcalsim/sim.RecoTask/closeby_1.0To100.0_idsmix_dR0.3_n5_rnd1_s1/prod5/reco_2327_n100.root")
 options.parseArguments()
 
+#this one has some tracks
+
+
 # define the process to run for the Phase2 era
 from Configuration.Eras.Era_Phase2C8_cff import Phase2C8
 process = cms.Process("HGR", Phase2C8)
@@ -48,11 +51,13 @@ process.load('Configuration.StandardSequences.L1Reco_cff')
 process.load('Configuration.StandardSequences.Reconstruction_cff')
 process.load('Configuration.StandardSequences.RecoSim_cff')
 process.load('Configuration.StandardSequences.EndOfProcess_cff')
+process.load('Configuration.StandardSequences.Validation_cff')
 process.load('Configuration.StandardSequences.FrontierConditions_GlobalTag_cff')
+
 
 # minimal configuration
 process.MessageLogger.cerr.FwkReport.reportEvery = 1
-process.maxEvents = cms.untracked.PSet(input=cms.untracked.int32(10))
+process.maxEvents = cms.untracked.PSet(input=cms.untracked.int32(100))
 process.source = cms.Source("PoolSource", fileNames=cms.untracked.vstring(options.inputFiles))
 
 # global tag

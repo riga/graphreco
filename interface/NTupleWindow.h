@@ -74,6 +74,9 @@ private:
     std::vector<float>   truthSimclusterEtas_;
     std::vector<float>   truthSimclusterPhis_;
 
+    //some globals mostly for plotting
+
+    float windowEta_, windowPhi_;
 
     //static pointers to create branches and fill tree
     static std::vector<std::vector<float> > * sp_hitFeatures_;
@@ -91,7 +94,8 @@ private:
     static std::vector<float>  * sp_truthSimclusterEtas_;
     static std::vector<float>  * sp_truthSimclusterPhis_;
 
-
+    static float * sp_windowEta_;
+    static float * sp_windowPhi_;
 
 };
 

@@ -145,7 +145,6 @@ WindowNTupler::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
    //get and propagate tracks
    std::vector<TrackWithHGCalPos> proptracks;
    auto intracks = iEvent.get(tracksToken_);
-   DEBUGPRINT(intracks.size());
    for(const auto& t: intracks){
        if(fabs(t.eta())< 1.5 || fabs(t.eta())>3.0) continue; //just use potentially interesting ones
        proptracks.push_back(trackprop_.propagateTrack(t));
@@ -165,6 +164,7 @@ WindowNTupler::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
 
 
    //DEBUG
+   DEBUGPRINT(intracks.size());
    DEBUGPRINT(proptracks.size());
    DEBUGPRINT(allrechits.size());
    DEBUGPRINT(inlayerclusters.size());
