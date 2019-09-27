@@ -24,6 +24,7 @@
 
 #include "HGCalTrackPropagator.h"
 
+#define DEBUGPRINT(x) {std::cout << #x << ": " << x << std::endl;}
 
 struct HGCRecHitWithPos{
     const HGCRecHit * hit;
@@ -102,9 +103,6 @@ public:
                 && fabs(eta - centerEta_) < innerRegionDEta_;
     }
 
-    inline size_t getNRecHits() const {
-        return recHits.size();
-    }
 
 
     void clear();
@@ -219,7 +217,7 @@ std::vector<T> WindowBase::createWindows(size_t nSegmentsPhi,
             float etaCenter = eta_j + etaStep / 2.;
             T w(etaCenter, phiCenter, totalDEta, totalDPhi,
                     (float)(etaStep / 2.), (float)(phiStep / 2.));
-            w.printDebug();
+            //w.printDebug();
             windows.push_back(w);
 
         }
@@ -235,7 +233,7 @@ std::vector<T> WindowBase::createWindows(size_t nSegmentsPhi,
 
             T w(etaCenter, phiCenter, totalDEta, totalDPhi,
                     (float)(etaStep / 2.), (float)(phiStep / 2.));
-            w.printDebug();
+            //w.printDebug();
             windows.push_back(w);
         }
 

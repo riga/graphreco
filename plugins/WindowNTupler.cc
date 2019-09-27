@@ -17,6 +17,7 @@
 //
 
 
+
 // system include files
 #include <memory>
 
@@ -95,9 +96,9 @@ class WindowNTupler : public edm::one::EDAnalyzer<edm::one::WatchRuns, edm::one:
 //
 WindowNTupler::WindowNTupler(const edm::ParameterSet& config)
  :
-  tracksToken_(consumes<TrackCollection>(config.getUntrackedParameter<edm::InputTag>("tracks"))),
-  layerClustersToken_(consumes<reco::CaloClusterCollection>(config.getUntrackedParameter<edm::InputTag>("layerClusters"))),
-  simClusterToken_(consumes<std::vector<SimCluster>>(config.getUntrackedParameter<edm::InputTag>("simClusters"))),
+  tracksToken_(consumes<TrackCollection>(config.getParameter<edm::InputTag>("tracks"))),
+  layerClustersToken_(consumes<reco::CaloClusterCollection>(config.getParameter<edm::InputTag>("layerClusters"))),
+  simClusterToken_(consumes<std::vector<SimCluster>>(config.getParameter<edm::InputTag>("simClusters"))),
   outTree_(nullptr)
 
 /* ... */
@@ -117,6 +118,9 @@ WindowNTupler::WindowNTupler(const edm::ParameterSet& config)
             config.getParameter<double>("maxEta"),
             config.getParameter<double>("etaFrameWidth"),
             config.getParameter<double>("phiFrameWidth"));
+
+    for(auto& w: windows_)
+        w.setMode(WindowBase::useRechits);//FIXME make configurable
 
 }
 
@@ -141,8 +145,11 @@ WindowNTupler::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
    //get and propagate tracks
    std::vector<TrackWithHGCalPos> proptracks;
    auto intracks = iEvent.get(tracksToken_);
-   for(const auto& t: intracks)
+   DEBUGPRINT(intracks.size());
+   for(const auto& t: intracks){
+       if(fabs(t.eta())< 1.5 || fabs(t.eta())>3.0) continue; //just use potentially interesting ones
        proptracks.push_back(trackprop_.propagateTrack(t));
+   }
 
    //get rechits, get positions and merge collections
    std::vector<HGCRecHitWithPos> allrechits;
@@ -155,6 +162,13 @@ WindowNTupler::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
 
    auto inlayerclusters = iEvent.get(layerClustersToken_);
    auto insimclusters = iEvent.get(simClusterToken_);
+
+
+   //DEBUG
+   DEBUGPRINT(proptracks.size());
+   DEBUGPRINT(allrechits.size());
+   DEBUGPRINT(inlayerclusters.size());
+   DEBUGPRINT(insimclusters.size());
 
    std::vector<size_t> filledtrack(proptracks.size(),0);
    std::vector<size_t> filledrechits(allrechits.size(),0);
@@ -194,6 +208,7 @@ WindowNTupler::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
        window.fillFeatureArrays();
        window.fillTruthArrays();
        window.assignTreePointers();
+
        outTree_->Fill();
        window.clear(); //free memory
    }
@@ -206,10 +221,9 @@ WindowNTupler::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
 // ------------ method called once each job just before starting event loop  ------------
 void WindowNTupler::beginJob() {
 
-    if (!fs_) {
+    if (!fs_)
         throw edm::Exception(edm::errors::Configuration,
                 "TFile Service is not registered in cfg file");
-    }
 
     outTree_ = fs_->make<TTree>("tree", "tree");
     NTupleWindow::createTreeBranches(outTree_);

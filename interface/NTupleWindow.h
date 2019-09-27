@@ -68,9 +68,6 @@ private:
     //truth energy of assigned simcluster
     std::vector<std::vector<int> >   truthHitAssignedPIDs_;
 
-
-    int nSimclusters_;
-    float truthTotalEnergy_;
     std::vector<int>     truthSimclusterIdx_;
     std::vector<std::vector<int> >    truthSimclusterPIDs_;
     std::vector<float>   truthSimclusterEnergies_;

@@ -6,6 +6,7 @@
  */
 
 
+
 #include "../interface/NTupleWindow.h"
 #include "DataFormats/Math/interface/deltaR.h"
 
@@ -60,9 +61,7 @@ NTupleWindow::NTupleWindow(float centerEta, float centerPhi,
         float outerRegionDEta, float outerRegionDPhi, float innerRegionDEta,
         float innerRegionDPhi) :
         WindowBase(centerEta, centerPhi, outerRegionDEta, outerRegionDPhi,
-                innerRegionDEta, innerRegionDPhi),
-                nSimclusters_(0),
-                truthTotalEnergy_(0){
+                innerRegionDEta, innerRegionDPhi) {
 }
 
 
@@ -109,13 +108,11 @@ void NTupleWindow::clear(){
     truthSimclusterEnergies_.clear();
     truthSimclusterEtas_.clear();
     truthSimclusterPhis_.clear();
-    //etc
 
-    nSimclusters_=0;
-    truthTotalEnergy_=0;
 }
 
 void NTupleWindow::fillFeatureArrays(){
+    //NO CUTS HERE!
 
     hitFeatures_.clear();
     if(getMode() == useRechits){
@@ -144,36 +141,37 @@ void NTupleWindow::fillFeatureArrays(){
 
 }
 
-void NTupleWindow::createDetIDHitAssociation(){
-    detIDHitAsso_.clear();
-
-    for(size_t i=0;i<recHits.size();i++){
-        detIDHitAsso_[recHits.at(i)->hit->detid()]={i,1.};
-    }
-    if(getMode() != useLayerClusters)
-        return;
-
-    //now map to layer clusters
-    for(size_t i=0;i<layerClusters_.size();i++){
-        auto hafs = layerClusters_.at(i)->hitsAndFractions();
-        for(const auto& haf: hafs){
-            auto pos = detIDHitAsso_.find(haf.first);
-            if(pos == detIDHitAsso_.end()) //edges
-                continue;
-            pos->second = {i, haf.second};
-        }
-    }
-
-}
-
 void NTupleWindow::fillTruthArrays(){
 
     createDetIDHitAssociation();
-    calculateSimclusterFeatures();//fills the simcluster properties
-    calculateTruthFractions();//generates the truthHitFractions_ vector
-    fillTruthAssignment();//fills the rest
+    calculateSimclusterFeatures();
+    calculateTruthFractions();
+    fillTruthAssignment();
 
+    DEBUGPRINT(getCenterEta());
+    DEBUGPRINT(getCenterPhi());
+    DEBUGPRINT(truthHitFractions_.size());
+    DEBUGPRINT(hitFeatures_.size());
+    DEBUGPRINT(truthSimclusterIdx_.size());
 }
+
+void NTupleWindow::createDetIDHitAssociation(){
+    detIDHitAsso_.clear();
+
+    if(getMode() == useRechits){
+        for(size_t i=0;i<recHits.size();i++){
+            detIDHitAsso_[recHits.at(i)->hit->detid()]={i,1.};
+        }
+    }
+    else{
+        for(size_t i=0;i<layerClusters_.size();i++){
+            for(const auto& haf: layerClusters_.at(i)->hitsAndFractions()){
+                detIDHitAsso_[haf.first] = {i, haf.second};
+            }
+        }
+    }
+}
+
 void NTupleWindow::calculateSimclusterFeatures(){
 
     truthSimclusterIdx_.clear();
@@ -182,16 +180,12 @@ void NTupleWindow::calculateSimclusterFeatures(){
     truthSimclusterEtas_.clear();
     truthSimclusterPhis_.clear();
 
-    nSimclusters_=simClusters_.size();
-    truthTotalEnergy_=0;;
 
     for(size_t i=0;i<simClusters_.size();i++){
         truthSimclusterIdx_.push_back(i);
         truthSimclusterPIDs_.push_back(pdgToOneHot(simClusters_.at(i)->pdgId()));
-        auto simCMomentum = simClusters_.at(i)->p4();
-        float energy = simCMomentum.E();
-        truthTotalEnergy_ += energy;
-        truthSimclusterEnergies_.push_back(energy);
+        const auto& simCMomentum = simClusters_.at(i)->p4();
+        truthSimclusterEnergies_.push_back(simCMomentum.E());
         truthSimclusterEtas_.push_back(simCMomentum.Eta());
         truthSimclusterPhis_.push_back(simCMomentum.Phi());
     }
@@ -209,9 +203,9 @@ void NTupleWindow::calculateTruthFractions(){
         const auto& hitsandfracs = simClusters_.at(i_sc)->hits_and_fractions();
         for(const auto& haf: hitsandfracs){
             auto pos = detIDHitAsso_.find(haf.first);
-            if(pos == detIDHitAsso_.end()) //edges
+            if(pos == detIDHitAsso_.end()) //edges or not included in layer clusters
                 continue;
-            size_t idx = pos->first;
+            size_t idx = pos->second.first;
             float totalfrac = pos->second.second * haf.second;
             truthHitFractions_.at(idx).at(i_sc) += totalfrac; //can be more than 1-1 for layer clusters
         }
@@ -262,11 +256,21 @@ void NTupleWindow::fillTruthAssignment(){
     truthHitAssignedPhis_.resize(truthHitFractions_.size());
     truthHitAssignedPIDs_.resize(truthHitFractions_.size());
 
+    bool nosim = simClusters_.size() < 1;
+
     for (size_t i_hit = 0; i_hit < truthHitFractions_.size(); i_hit++) {
+
+        bool allzero = std::all_of(truthHitFractions_.at(i_hit).begin(),
+                truthHitFractions_.at(i_hit).end(), [](float i) {return i==0;});
+
+        if(allzero || nosim){
+            truthHitAssignementIdx_.at(i_hit) = -1;
+            continue;
+        }
         size_t maxfrac_idx = std::max_element(
                 truthHitFractions_.at(i_hit).begin(),
                 truthHitFractions_.at(i_hit).end())
-                - truthHitFractions_.at(i_hit).begin();
+        - truthHitFractions_.at(i_hit).begin();
 
         truthHitAssignementIdx_.at(i_hit) = maxfrac_idx;
         truthHitAssignedEnergies_.at(i_hit) = truthSimclusterEnergies_.at(

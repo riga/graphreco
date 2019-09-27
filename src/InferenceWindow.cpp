@@ -6,6 +6,7 @@
  */
 
 
+
 #include "../interface/InferenceWindow.h"
 
 InferenceWindow::InferenceWindow(float centerEta, float centerPhi,
