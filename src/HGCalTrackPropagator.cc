@@ -15,8 +15,10 @@
 #include "Geometry/HGCalCommonData/interface/HGCalDDDConstants.h"
 
 HGCalTrackPropagator::HGCalTrackPropagator(const edm::EventSetup &es){
+    getEventSetup(es);
+}
 
-
+void HGCalTrackPropagator::getEventSetup(const edm::EventSetup &es){
     //get the propagator
     es.get<IdealMagneticFieldRecord>().get(bField_);
     es.get<TrackingComponentsRecord>().get("PropagatorWithMaterial", propagator_);
@@ -41,11 +43,13 @@ HGCalTrackPropagator::HGCalTrackPropagator(const edm::EventSetup &es){
                     SimpleDiskBounds(frontradii.first, frontradii.second,
                             -frontZ - 0.5, -frontZ + 0.5)).get());
 
-
+    setup_=true;
 }
 
 TrackWithHGCalPos HGCalTrackPropagator::propagateTrack(const reco::Track& t)const{
-
+    if(!setup_)
+        throw cms::Exception("HGCalTrackPropagator")
+                        << "event setup not loaded";
     zpos trackz = posZ;
     if(t.eta()<0) trackz = negZ;
 

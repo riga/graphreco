@@ -39,7 +39,7 @@
 #include "FWCore/ServiceRegistry/interface/Service.h"
 #include "CommonTools/UtilAlgos/interface/TFileService.h"
 
-#include "../interface/Window.h"
+#include "../interface/NTupleWindow.h"
 //
 // class declaration
 //
@@ -52,13 +52,15 @@
 
 using reco::TrackCollection;
 
-class WindowNTupler : public edm::one::EDAnalyzer<edm::one::SharedResources>  {
+class WindowNTupler : public edm::one::EDAnalyzer<edm::one::WatchRuns, edm::one::SharedResources>  {
    public:
       explicit WindowNTupler(const edm::ParameterSet&);
       ~WindowNTupler();
 
       static void fillDescriptions(edm::ConfigurationDescriptions& descriptions);
 
+      virtual void beginRun(edm::Run const &iEvent, edm::EventSetup const &) override;
+      virtual void endRun(edm::Run const &iEvent, edm::EventSetup const &) override;
 
    private:
       virtual void beginJob() override;
@@ -67,21 +69,16 @@ class WindowNTupler : public edm::one::EDAnalyzer<edm::one::SharedResources>  {
 
       // ----------member data ---------------------------
       edm::EDGetTokenT<TrackCollection> tracksToken_;
-      edm::EDGetTokenT<reco::CaloClusterCollection> layerClusters_;
-      edm::EDGetTokenT<std::vector<SimCluster>> simClusters_;
+      edm::EDGetTokenT<reco::CaloClusterCollection> layerClustersToken_;
+      edm::EDGetTokenT<std::vector<SimCluster>> simClusterToken_;
       std::vector<edm::EDGetTokenT<HGCRecHitCollection> > rechitsTokens_;
 
-      std::vector<Window> windows_;
-
+      std::vector<NTupleWindow> windows_;
+      hgcal::RecHitTools recHitTools_;
+      HGCalTrackPropagator trackprop_;
       edm::Service<TFileService> fs_;
       TTree * outTree_;
 
-      std::vector<std::vector<float> > * trackFeatures_;
-    std::vector<std::vector<float> > * rechitFeatures_;
-    std::vector<std::vector<float> > * layerClusterFeatures_;
-    std::vector<std::vector<float> > * truthFractions_;
-    std::vector<std::vector<int> > * truthIDs_;
-    std::vector<std::vector<float> > * truthEnergies_;
 
 };
 
@@ -99,15 +96,9 @@ class WindowNTupler : public edm::one::EDAnalyzer<edm::one::SharedResources>  {
 WindowNTupler::WindowNTupler(const edm::ParameterSet& config)
  :
   tracksToken_(consumes<TrackCollection>(config.getUntrackedParameter<edm::InputTag>("tracks"))),
-  layerClusters_(consumes<reco::CaloClusterCollection>(config.getUntrackedParameter<edm::InputTag>("layerClusters"))),
-  simClusters_(consumes<std::vector<SimCluster>>(config.getUntrackedParameter<edm::InputTag>("simClusters"))),
-  outTree_(nullptr),
-  trackFeatures_(new std::vector<std::vector<float> >()),
-  rechitFeatures_(new std::vector<std::vector<float> >()),
-  layerClusterFeatures_(new std::vector<std::vector<float> >()),
-  truthFractions_(new std::vector<std::vector<float> >()),
-  truthIDs_(new std::vector<std::vector<int> >()),
-  truthEnergies_(new std::vector<std::vector<float> >())
+  layerClustersToken_(consumes<reco::CaloClusterCollection>(config.getUntrackedParameter<edm::InputTag>("layerClusters"))),
+  simClusterToken_(consumes<std::vector<SimCluster>>(config.getUntrackedParameter<edm::InputTag>("simClusters"))),
+  outTree_(nullptr)
 
 /* ... */
 
@@ -119,7 +110,7 @@ WindowNTupler::WindowNTupler(const edm::ParameterSet& config)
     }
 
     //DEBUG INFO: has checks built in
-    windows_ = Window::createWindows(
+    windows_ = NTupleWindow::createWindows(
             (size_t) config.getParameter<uint32_t>("nPhiSegments"),
             (size_t) config.getParameter<uint32_t>("nEtaSegments"),
             config.getParameter<double>("minEta"),
@@ -132,11 +123,6 @@ WindowNTupler::WindowNTupler(const edm::ParameterSet& config)
 
 WindowNTupler::~WindowNTupler()
 {
-    delete rechitFeatures_;
-    delete layerClusterFeatures_;
-    delete truthFractions_;
-    delete truthIDs_;
-    delete truthEnergies_;
 }
 
 
@@ -152,30 +138,66 @@ WindowNTupler::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
 
    //prepare collections
 
-   //tracks
-   HGCalTrackPropagator trackprop(iSetup);
-
+   //get and propagate tracks
    std::vector<TrackWithHGCalPos> proptracks;
-   for(const auto& t: iEvent.get(tracksToken_))
-       proptracks.push_back(trackprop.propagateTrack(t));
+   auto intracks = iEvent.get(tracksToken_);
+   for(const auto& t: intracks)
+       proptracks.push_back(trackprop_.propagateTrack(t));
+
+   //get rechits, get positions and merge collections
+   std::vector<HGCRecHitWithPos> allrechits;
+   for (auto & token : rechitsTokens_) {
+       for (const auto& rh : iEvent.get(token)) {
+           HGCRecHitWithPos rhp = { &rh, recHitTools_.getPosition(rh.detid()) };
+           allrechits.push_back(rhp);
+       }
+   }
+
+   auto inlayerclusters = iEvent.get(layerClustersToken_);
+   auto insimclusters = iEvent.get(simClusterToken_);
+
    std::vector<size_t> filledtrack(proptracks.size(),0);
+   std::vector<size_t> filledrechits(allrechits.size(),0);
+   std::vector<size_t> filledlayercluster(inlayerclusters.size(),0);
+   std::vector<size_t> filledsimclusters(insimclusters.size(),0);
 
    //rechits
    //filledrechits vector etc
 
    for(auto& window : windows_){
+       //attach tracks, rehits etc to windows
        for(size_t it=0;it<proptracks.size();it++) {
            if(filledtrack.at(it)>3) continue;
            if(window.maybeAddTrack(proptracks.at(it)))
                filledtrack.at(it)++;
        }
-       window.fillTTreeTrackFeatures(trackFeatures_);
+       for(size_t it=0;it<allrechits.size();it++) {
+           if(filledrechits.at(it)>3) continue;
+           if(window.maybeAddRecHit(allrechits.at(it)))
+               filledrechits.at(it)++;
+       }
+       if(window.getMode() == WindowBase::useLayerClusters){
+           for(size_t it=0;it<inlayerclusters.size();it++) {
+               if(filledlayercluster.at(it)>3) continue;
+               if(window.maybeAddLayerCluster(inlayerclusters.at(it)))
+                   filledlayercluster.at(it)++;
+           }
+       }
 
+       for(size_t it=0;it<insimclusters.size();it++) {
+           if(filledsimclusters.at(it)>3) continue;
+           if(window.maybeAddSimCluster(insimclusters.at(it)))
+               filledsimclusters.at(it)++;
+       }
 
-       //rechits etc...
-
+       //the follwing will not work yet before everything is filled
+       window.fillFeatureArrays();
+       window.fillTruthArrays();
+       window.assignTreePointers();
        outTree_->Fill();
+       window.clear(); //free memory
    }
+
 
 
 }
@@ -190,13 +212,7 @@ void WindowNTupler::beginJob() {
     }
 
     outTree_ = fs_->make<TTree>("tree", "tree");
-    outTree_->Branch("trackFeatures",&trackFeatures_);
-    outTree_->Branch("rechitFeatures",&rechitFeatures_);
-    outTree_->Branch("layerClusterFeatures",&layerClusterFeatures_);
-    outTree_->Branch("truthFractions",&truthFractions_);
-    outTree_->Branch("truthIDs",&truthIDs_);
-    outTree_->Branch("truthEnergies",&truthEnergies_);
-
+    NTupleWindow::createTreeBranches(outTree_);
 
 }
 
@@ -204,6 +220,14 @@ void WindowNTupler::beginJob() {
 void
 WindowNTupler::endJob()
 {
+}
+
+void WindowNTupler::beginRun(edm::Run const &iEvent, edm::EventSetup const &es) {
+  recHitTools_.getEventSetup(es);
+  trackprop_ .getEventSetup(es);
+}
+void WindowNTupler::endRun(edm::Run const &iEvent, edm::EventSetup const &es) {
+
 }
 
 // ------------ method fills 'descriptions' with the allowed parameters for the module  ------------

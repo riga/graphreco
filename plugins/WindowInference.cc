@@ -20,7 +20,7 @@
 
 #include "PhysicsTools/TensorFlow/interface/TensorFlow.h"
 
-#include "RecoHGCal/GraphReco/interface/Window.h"
+#include "RecoHGCal/GraphReco/interface/InferenceWindow.h"
 
 
 // macros for simplified logs
@@ -76,7 +76,7 @@ class WindowInference: public edm::stream::EDAnalyzer<
     hgcal::RecHitTools recHitTools_;
 
     // windows
-    std::vector<Window> windows_;
+    std::vector<InferenceWindow> windows_;
 
     double minEta_;
     double maxEta_;
@@ -154,7 +154,7 @@ WindowInference::~WindowInference() {
 
 
 void WindowInference::beginStream(edm::StreamID streamId) {
-    windows_ = Window::createWindows(nPhiSegments_,nEtaSegments_,minEta_,maxEta_,etaFrameWidth_,phiFrameWidth_);
+    windows_ = InferenceWindow::createWindows(nPhiSegments_,nEtaSegments_,minEta_,maxEta_,etaFrameWidth_,phiFrameWidth_);
 }
 
 void WindowInference::endStream() {
@@ -184,7 +184,7 @@ void WindowInference::analyze(const edm::Event& event,
     //reconstructShowers();
 
     // clear all windows
-    for (Window window : windows_) {
+    for (auto& window : windows_) {
         window.clear();
     }
 }
@@ -201,17 +201,7 @@ void WindowInference::fillWindows(const edm::Event& event) {
     // skip layer cluster or rechit loop accordingly
 
     //FIXME
-    // read rechits from all collections and store them in appropriate windows
-    for (edm::EDGetTokenT<HGCRecHitCollection>& token : recHitTokens_) {
-        edm::Handle<HGCRecHitCollection> handle;
-        event.getByToken(token, handle);
-        for (const HGCRecHit& recHit : *handle) {
-            for (auto & window : windows_) {
-                window.maybeAddRecHit(recHit,
-                        recHitTools_.getPosition(recHit.detid()));
-            }
-        }
-    }
+
 
 }
 

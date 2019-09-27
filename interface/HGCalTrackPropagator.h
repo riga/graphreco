@@ -25,12 +25,15 @@ struct TrackWithHGCalPos{
 class HGCalTrackPropagator{
 public:
     enum zpos{ negZ=0, posZ=1};
-
+    HGCalTrackPropagator():setup_(false){}
     HGCalTrackPropagator(const edm::EventSetup &es); //sets up geometry etc.
+
+    void getEventSetup(const edm::EventSetup &es);
 
     TrackWithHGCalPos propagateTrack(const reco::Track&)const;
 
 private:
+    bool setup_;
     edm::ESHandle<MagneticField> bField_;
     edm::ESHandle<Propagator> propagator_;
     std::unique_ptr<GeomDet> frontFaces_[2];
