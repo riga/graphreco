@@ -10,7 +10,8 @@
 #include "../interface/NTupleWindow.h"
 #include "DataFormats/Math/interface/deltaR.h"
 
-std::vector<std::vector<float> > * NTupleWindow::sp_hitFeatures_=0;
+std::vector<float>* NTupleWindow::sp_hitFeatures_=0;
+std::vector<float>* NTupleWindow::sp_trackFeatures_=0;
 
 std::vector<std::vector<float> > * NTupleWindow::sp_truthHitFractions_=0;
 std::vector<int>                 * NTupleWindow::sp_truthHitAssignementIdx_=0;
@@ -44,7 +45,8 @@ void NTupleWindow::createTreeBranches(TTree* t){
    // NTupleWindow dummy;
    // dummy.assignTreePointers(); //so that the pointers are not null, maybe not needed? FIXME
 
-    t->Branch("hitFeatures", &sp_hitFeatures_);
+    t->Branch("rechitFeatures", &sp_hitFeatures_);
+    t->Branch("trackFeatures", &sp_trackFeatures_);
 
     t->Branch("truthHitFractions", &sp_truthHitFractions_);
     t->Branch("truthHitAssignementIdx", &sp_truthHitAssignementIdx_);
@@ -80,7 +82,8 @@ NTupleWindow::NTupleWindow(float centerEta, float centerPhi,
 
 void NTupleWindow::assignTreePointers()  {
 
-    sp_hitFeatures_ = &hitFeatures_;
+    sp_hitFeatures_ = &(hitFeatures_.at(0));
+    sp_trackFeatures_ = &(hitFeatures_.at(1));
 
     sp_truthHitFractions_ = &truthHitFractions_;
     sp_truthHitAssignementIdx_ = &truthHitAssignementIdx_;

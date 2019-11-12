@@ -79,7 +79,8 @@ private:
     float windowEta_, windowPhi_;
 
     //static pointers to create branches and fill tree
-    static std::vector<std::vector<float> > * sp_hitFeatures_;
+    static std::vector<float> * sp_hitFeatures_;
+    static std::vector<float> * sp_trackFeatures_;
 
     static std::vector<std::vector<float> > * sp_truthHitFractions_;
     static std::vector<int>                 * sp_truthHitAssignementIdx_;

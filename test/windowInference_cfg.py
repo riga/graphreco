@@ -40,7 +40,7 @@ process = cms.Process("HGR", Phase2C8)
 # standard sequences and modules
 process.load("Configuration.StandardSequences.Services_cff")
 process.load("FWCore.MessageService.MessageLogger_cfi")
-process.load("Configuration.Geometry.GeometryExtended2023D41Reco_cff")
+process.load("Configuration.Geometry.GeometryExtended2026D43Reco_cff")
 process.load("Configuration.StandardSequences.FrontierConditions_GlobalTag_cff")
 
 # minimal configuration
@@ -49,8 +49,8 @@ process.maxEvents = cms.untracked.PSet(input=cms.untracked.int32(10))
 process.source = cms.Source("PoolSource", fileNames=cms.untracked.vstring(options.inputFiles))
 
 # global tag
-from Configuration.AlCa.GlobalTag import GlobalTag
-process.GlobalTag = GlobalTag(process.GlobalTag, "auto:phase2_realistic", "")
+#from Configuration.AlCa.GlobalTag import GlobalTag
+#process.GlobalTag = GlobalTag(process.GlobalTag, "auto:phase2_realistic", "")
 
 # process options
 process.options = cms.untracked.PSet(

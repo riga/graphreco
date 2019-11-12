@@ -30,7 +30,8 @@ if not os.path.exists(graph_path):
 
 # setup minimal options
 options = VarParsing("python")
-options.setDefault("inputFiles", "file:///eos/cms/store/cmst3/group/hgcal/CMG_studies/hgcalsim/sim.RecoTask/closeby_1.0To100.0_idsmix_dR0.3_n5_rnd1_s1/prod5/reco_2327_n100.root")
+#options.setDefault("inputFiles", "file:/eos/cms/store/cmst3/group/hgcal/CMG_studies/hgcalsim/sim.RecoTask/closeby_1.0To100.0_idsmix_dR0.3_n5_rnd1_s1/prod5/reco_2327_n100.root")
+options.setDefault("inputFiles", "file:/afs/cern.ch/user/k/kelong/work/MLReco/CMSSW_11_0_0_pre11/src/reco_prodtools/ttbar_test_20191106/physprocttbar_x10_ttbar-1.0To-1.0_RECO_1.root")
 options.parseArguments()
 
 #this one has some tracks
@@ -43,7 +44,7 @@ process = cms.Process("HGR", Phase2C8)
 # standard sequences and modules
 process.load("Configuration.StandardSequences.Services_cff")
 process.load("FWCore.MessageService.MessageLogger_cfi")
-process.load("Configuration.Geometry.GeometryExtended2023D41Reco_cff")
+process.load("Configuration.Geometry.GeometryExtended2026D41Reco_cff")
 process.load("Configuration.StandardSequences.FrontierConditions_GlobalTag_cff")
 process.load('Configuration.StandardSequences.MagneticField_cff')
 process.load('Configuration.StandardSequences.RawToDigi_cff')
@@ -57,7 +58,7 @@ process.load('Configuration.StandardSequences.FrontierConditions_GlobalTag_cff')
 
 # minimal configuration
 process.MessageLogger.cerr.FwkReport.reportEvery = 1
-process.maxEvents = cms.untracked.PSet(input=cms.untracked.int32(100))
+process.maxEvents = cms.untracked.PSet(input=cms.untracked.int32(5))
 process.source = cms.Source("PoolSource", fileNames=cms.untracked.vstring(options.inputFiles))
 
 # global tag

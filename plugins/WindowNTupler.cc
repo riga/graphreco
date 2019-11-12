@@ -121,6 +121,7 @@ WindowNTupler::WindowNTupler(const edm::ParameterSet& config)
 
     for(auto& w: windows_)
         w.setMode(WindowBase::useRechits);//FIXME make configurable
+        //w.setMode(WindowBase::useLayerClusters);//FIXME make configurable
 
 }
 

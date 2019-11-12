@@ -30,7 +30,7 @@ WindowNTupler = cms.EDAnalyzer("WindowNTupler",
     etaFrameWidth=cms.double(0.1),
     phiFrameWidth=cms.double(0.1),
     # overlap in phi and eta
-    nEtaSegments=cms.uint32(3),
-    nPhiSegments=cms.uint32(1),
+    nEtaSegments=cms.uint32(6),
+    nPhiSegments=cms.uint32(3),
     # names of the input and output tensors
 )
