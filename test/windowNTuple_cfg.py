@@ -12,26 +12,26 @@ import FWCore.ParameterSet.Config as cms
 from FWCore.ParameterSet.VarParsing import VarParsing
 
 
-# determine the location of _this_ file
-if "__file__" in globals():
-    this_dir = os.path.dirname(os.path.abspath(__file__))
-else:
-    this_dir = os.path.expandvars("$CMSSW_BASE/src/RecoHGCal/GraphReco/test")
+# # determine the location of _this_ file
+# if "__file__" in globals():
+#     this_dir = os.path.dirname(os.path.abspath(__file__))
+# else:
+#     this_dir = os.path.expandvars("$CMSSW_BASE/src/RecoHGCal/GraphReco/test")
 
-# ensure that the graph exists
-# if not, call the create_dummy_graph.py script in a subprocess since tensorflow complains
-# when its loaded twice (once here in python, once in c++)
-graph_path = os.path.join(this_dir, "graph.pb")
-if not os.path.exists(graph_path):
-    script_path = os.path.join(this_dir, "create_dummy_graph.py")
-    code = subprocess.call(["python", script_path, graph_path])
-    if code != 0:
-        raise Exception("create_dummy_graph.py failed")
+# # ensure that the graph exists
+# # if not, call the create_dummy_graph.py script in a subprocess since tensorflow complains
+# # when its loaded twice (once here in python, once in c++)
+# graph_path = os.path.join(this_dir, "graph.pb")
+# if not os.path.exists(graph_path):
+#     script_path = os.path.join(this_dir, "create_dummy_graph.py")
+#     code = subprocess.call(["python", script_path, graph_path])
+#     if code != 0:
+#         raise Exception("create_dummy_graph.py failed")
 
 # setup minimal options
 options = VarParsing("python")
-#options.setDefault("inputFiles", "file:/eos/cms/store/cmst3/group/hgcal/CMG_studies/hgcalsim/sim.RecoTask/closeby_1.0To100.0_idsmix_dR0.3_n5_rnd1_s1/prod5/reco_2327_n100.root")
-options.setDefault("inputFiles", "file:/afs/cern.ch/user/k/kelong/work/MLReco/CMSSW_11_0_0_pre11/src/reco_prodtools/ttbar_test_20191106/physprocttbar_x10_ttbar-1.0To-1.0_RECO_1.root")
+options.setDefault("inputFiles", "file:///eos/cms/store/cmst3/group/hgcal/CMG_studies/hgcalsim/sim.RecoTask/closeby_1.0To100.0_idsmix_dR0.3_n5_rnd1_s1/prod5/reco_2327_n100.root")
+options.setDefault('outputFile', 'file:windowntup.root')
 options.parseArguments()
 
 #this one has some tracks
@@ -71,8 +71,8 @@ process.options = cms.untracked.PSet(
     wantSummary=cms.untracked.bool(True),
 )
 
-process.TFileService = cms.Service("TFileService", 
-                                   fileName = cms.string("testout.root"))
+process.TFileService = cms.Service("TFileService", fileName = cms.string(
+    options.__getattr__("outputFile", noTags=True)))
 
 # load and configure the windowInference module
 from RecoHGCal.GraphReco.windowNTupler_cfi import WindowNTupler
