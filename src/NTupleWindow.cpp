@@ -10,8 +10,8 @@
 #include "../interface/NTupleWindow.h"
 #include "DataFormats/Math/interface/deltaR.h"
 
-std::vector<float>* NTupleWindow::sp_hitFeatures_=0;
-std::vector<float>* NTupleWindow::sp_trackFeatures_=0;
+std::vector<std::vector<float>>* NTupleWindow::sp_hitFeatures_=0;
+//std::vector<float>* NTupleWindow::sp_trackFeatures_=0;
 
 std::vector<std::vector<float> > * NTupleWindow::sp_truthHitFractions_=0;
 std::vector<int>                 * NTupleWindow::sp_truthHitAssignementIdx_=0;
@@ -46,7 +46,7 @@ void NTupleWindow::createTreeBranches(TTree* t){
    // dummy.assignTreePointers(); //so that the pointers are not null, maybe not needed? FIXME
 
     t->Branch("rechitFeatures", &sp_hitFeatures_);
-    t->Branch("trackFeatures", &sp_trackFeatures_);
+    //t->Branch("trackFeatures", &sp_trackFeatures_);
 
     t->Branch("truthHitFractions", &sp_truthHitFractions_);
     t->Branch("truthHitAssignementIdx", &sp_truthHitAssignementIdx_);
@@ -82,8 +82,8 @@ NTupleWindow::NTupleWindow(float centerEta, float centerPhi,
 
 void NTupleWindow::assignTreePointers()  {
 
-    sp_hitFeatures_ = &(hitFeatures_.at(0));
-    sp_trackFeatures_ = &(hitFeatures_.at(1));
+    sp_hitFeatures_ = &(hitFeatures_);
+    //sp_trackFeatures_ = &(hitFeatures_.at(1));
 
     sp_truthHitFractions_ = &truthHitFractions_;
     sp_truthHitAssignementIdx_ = &truthHitAssignementIdx_;
@@ -150,12 +150,12 @@ void NTupleWindow::fillFeatureArrays(){
         }
     }
     //add tracks LAST!
-    for(const auto& tr:tracks_){
-        std::vector<float> feats(nTrackFeatures_);
-        auto data = &feats.at(0);
-        fillTrackFeatures(data,tr);
-        hitFeatures_.push_back(feats);
-    }
+    //for(const auto& tr:tracks_){
+    //    std::vector<float> feats(nTrackFeatures_);
+    //    auto data = &feats.at(0);
+    //    fillTrackFeatures(data,tr);
+    //    hitFeatures_.push_back(feats);
+    //}
 
 }
 
@@ -230,59 +230,59 @@ void NTupleWindow::calculateTruthFractions(){
     }
 
     //associate the tracks here, such that they look like hits, simple matching
-    size_t trackStartIterator = recHits.size();
-    if(getMode() == useLayerClusters)
-        trackStartIterator = layerClusters_.size();
+    //size_t trackStartIterator = recHits.size();
+    //if(getMode() == useLayerClusters)
+    //    trackStartIterator = layerClusters_.size();
 
-    //match, will be improved by direct truth matching in new simclusters on longer term
-    //assumption: for every track there is charged simcluster
-    /*
-     *
-     * this is just a temporary solution until a proper simcluster-simtrack integration exists
-     *
-     */
-    std::vector<size_t> usedSimclusters;
+    ////match, will be improved by direct truth matching in new simclusters on longer term
+    ////assumption: for every track there is charged simcluster
+    ///*
+    // *
+    // * this is just a temporary solution until a proper simcluster-simtrack integration exists
+    // *
+    // */
+    //std::vector<size_t> usedSimclusters;
 
-    float debug_ntrackwithnoSC=0;
+    //float debug_ntrackwithnoSC=0;
 
-    for(size_t i_t=0;i_t<tracks_.size();i_t++){
+    //for(size_t i_t=0;i_t<tracks_.size();i_t++){
 
-        const double momentumscaler = 0.0001;
-        double minDistance=0.1 + 0.1;
+    //    const double momentumscaler = 0.0001;
+    //    double minDistance=0.1 + 0.1;
 
-        size_t matchedSCIdx=simClusters_.size();
-        double distance = 0;
-        for(size_t i_sc=0;i_sc<simClusters_.size();i_sc++){
-            if(fabs(simClusters_.at(i_sc)->charge())<0.1)
-                continue;
-            if(std::find(usedSimclusters.begin(),usedSimclusters.end(),i_sc) != usedSimclusters.end())
-                continue;
-            double scEnergy = simClusters_.at(i_sc)->p4().E();
-            double trackMomentum = tracks_.at(i_t)->track->p();
-            distance = reco::deltaR(simClusters_.at(i_sc)->eta(),
-                    simClusters_.at(i_sc)->phi(),
-                    (float)tracks_.at(i_t)->pos.eta(),
-                    (float)tracks_.at(i_t)->pos.phi()) +
-                            momentumscaler*std::abs(scEnergy - trackMomentum)/(scEnergy);
+    //    size_t matchedSCIdx=simClusters_.size();
+    //    double distance = 0;
+    //    for(size_t i_sc=0;i_sc<simClusters_.size();i_sc++){
+    //        if(fabs(simClusters_.at(i_sc)->charge())<0.1)
+    //            continue;
+    //        if(std::find(usedSimclusters.begin(),usedSimclusters.end(),i_sc) != usedSimclusters.end())
+    //            continue;
+    //        double scEnergy = simClusters_.at(i_sc)->p4().E();
+    //        double trackMomentum = tracks_.at(i_t)->track->p();
+    //        distance = reco::deltaR(simClusters_.at(i_sc)->eta(),
+    //                simClusters_.at(i_sc)->phi(),
+    //                (float)tracks_.at(i_t)->pos.eta(),
+    //                (float)tracks_.at(i_t)->pos.phi()) +
+    //                        momentumscaler*std::abs(scEnergy - trackMomentum)/(scEnergy);
 
-            if(distance<minDistance){
-                matchedSCIdx=i_sc;
-                minDistance=distance;
-            }
-        }
-        if(matchedSCIdx<simClusters_.size()){
-            truthHitFractions_.at(i_t+trackStartIterator).at(matchedSCIdx) = 1.;
-            usedSimclusters.push_back(matchedSCIdx);
-        }
-        else{
-            debug_ntrackwithnoSC++;
-            DEBUGPRINT(distance);
-            DEBUGPRINT(tracks_.at(i_t)->track->p());
-            DEBUGPRINT(tracks_.at(i_t)->track->eta());
-        }
-    }
-    DEBUGPRINT(debug_ntrackwithnoSC);
-    DEBUGPRINT(debug_ntrackwithnoSC/(float)tracks_.size());
+    //        if(distance<minDistance){
+    //            matchedSCIdx=i_sc;
+    //            minDistance=distance;
+    //        }
+    //    }
+    //    if(matchedSCIdx<simClusters_.size()){
+    //        truthHitFractions_.at(i_t+trackStartIterator).at(matchedSCIdx) = 1.;
+    //        usedSimclusters.push_back(matchedSCIdx);
+    //    }
+    //    else{
+    //        debug_ntrackwithnoSC++;
+    //        DEBUGPRINT(distance);
+    //        DEBUGPRINT(tracks_.at(i_t)->track->p());
+    //        DEBUGPRINT(tracks_.at(i_t)->track->eta());
+    //    }
+    //}
+    //DEBUGPRINT(debug_ntrackwithnoSC);
+    //DEBUGPRINT(debug_ntrackwithnoSC/(float)tracks_.size());
 }
 
 
