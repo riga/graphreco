@@ -11,6 +11,18 @@
 #include "DataFormats/Math/interface/deltaR.h"
 
 std::vector<std::vector<float>>* NTupleWindow::sp_hitFeatures_=0;
+std::vector<float>* NTupleWindow::sp_recHitEnergy_;
+std::vector<float>* NTupleWindow::sp_recHitEta_;
+std::vector<float>* NTupleWindow::sp_recHitRelPhi_;
+std::vector<float>* NTupleWindow::sp_recHitTheta_;
+std::vector<float>* NTupleWindow::sp_recHitMag_;
+std::vector<float>* NTupleWindow::sp_recHitX_;
+std::vector<float>* NTupleWindow::sp_recHitY_;
+std::vector<float>* NTupleWindow::sp_recHitZ_;
+std::vector<float>* NTupleWindow::sp_recHitDetID_;
+std::vector<float>* NTupleWindow::sp_recHitTime_;
+std::vector<float>* NTupleWindow::sp_recHitID_;
+std::vector<float>* NTupleWindow::sp_recHitPad_;
 //std::vector<float>* NTupleWindow::sp_trackFeatures_=0;
 
 std::vector<std::vector<float> > * NTupleWindow::sp_truthHitFractions_=0;
@@ -45,7 +57,22 @@ void NTupleWindow::createTreeBranches(TTree* t){
    // NTupleWindow dummy;
    // dummy.assignTreePointers(); //so that the pointers are not null, maybe not needed? FIXME
 
-    t->Branch("rechitFeatures", &sp_hitFeatures_);
+    if (flattenRechitFeatures_) {
+        t->Branch("recHitEnergy", &sp_recHitEnergy_);
+        t->Branch("recHitEta", &sp_recHitEta_);
+        t->Branch("recHitRelPhi", &sp_recHitRelPhi_);
+        t->Branch("recHitTheta", &sp_recHitTheta_);
+        t->Branch("recHitMag", &sp_recHitMag_);
+        t->Branch("recHitX", &sp_recHitX_);
+        t->Branch("recHitY", &sp_recHitY_);
+        t->Branch("recHitZ", &sp_recHitZ_);
+        t->Branch("recHitDetID", &sp_recHitDetID_);
+        t->Branch("recHitTime", &sp_recHitTime_);
+        t->Branch("recHitID", &sp_recHitID_);
+        t->Branch("recHitPad", &sp_recHitPad_);
+    }
+    else
+        t->Branch("recHitFeatures", &sp_hitFeatures_);
     //t->Branch("trackFeatures", &sp_trackFeatures_);
 
     t->Branch("truthHitFractions", &sp_truthHitFractions_);
@@ -79,11 +106,44 @@ NTupleWindow::NTupleWindow(float centerEta, float centerPhi,
 
 //static
 
+// This is not a very clear/efficient way to do this, but it's the simplest way given
+// the structure we already have
+void NTupleWindow::flattenRechitFeatures() {
+    for (size_t i = 0; i < hitFeatures_.size(); i++) {
+        recHitEnergy_.push_back(hitFeatures_[i][kEnergy]);
+        recHitEta_.push_back(hitFeatures_[i][kEta]);
+        recHitRelPhi_.push_back(hitFeatures_[i][kRelPhi]);
+        recHitTheta_.push_back(hitFeatures_[i][kTheta]);
+        recHitMag_.push_back(hitFeatures_[i][kMag]);
+        recHitX_.push_back(hitFeatures_[i][kx]);
+        recHitY_.push_back(hitFeatures_[i][ky]);
+        recHitZ_.push_back(hitFeatures_[i][kz]);
+        recHitDetID_.push_back(hitFeatures_[i][kDetid]);
+        recHitTime_.push_back(hitFeatures_[i][kTime]);
+        recHitID_.push_back(hitFeatures_[i][kId]);
+        recHitPad_.push_back(hitFeatures_[i][kPad]);
+    }
+}
+
 
 void NTupleWindow::assignTreePointers()  {
 
-    sp_hitFeatures_ = &(hitFeatures_);
-    //sp_trackFeatures_ = &(hitFeatures_.at(1));
+    sp_hitFeatures_ = &hitFeatures_;
+    //sp_trackFeatures_ = &hitFeatures_;
+    if (flattenRechitFeatures_) {
+        sp_recHitEnergy_  = &recHitEnergy_;
+        sp_recHitEta_  = &recHitEta_;
+        sp_recHitRelPhi_  = &recHitRelPhi_;
+        sp_recHitTheta_  = &recHitTheta_;
+        sp_recHitMag_  = &recHitMag_;
+        sp_recHitX_  = &recHitX_;
+        sp_recHitY_  = &recHitY_;
+        sp_recHitZ_  = &recHitZ_;
+        sp_recHitDetID_  = &recHitDetID_;
+        sp_recHitTime_  = &recHitTime_;
+        sp_recHitID_  = &recHitID_;
+        sp_recHitPad_  = &recHitPad_;
+    }
 
     sp_truthHitFractions_ = &truthHitFractions_;
     sp_truthHitAssignementIdx_ = &truthHitAssignementIdx_;
@@ -111,6 +171,18 @@ void NTupleWindow::clear(){
     detIDHitAsso_.clear();
 
     hitFeatures_.clear();
+    recHitEnergy_.clear();
+    recHitEta_.clear();
+    recHitRelPhi_.clear();
+    recHitTheta_.clear();
+    recHitMag_.clear();
+    recHitX_.clear();
+    recHitY_.clear();
+    recHitZ_.clear();
+    recHitDetID_.clear();
+    recHitTime_.clear();
+    recHitID_.clear();
+    recHitPad_.clear();
 
     truthHitFractions_.clear();
     truthHitAssignementIdx_.clear();

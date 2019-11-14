@@ -30,8 +30,7 @@ from FWCore.ParameterSet.VarParsing import VarParsing
 
 # setup minimal options
 options = VarParsing("python")
-#options.setDefault("inputFiles", "file:///eos/cms/store/cmst3/group/hgcal/CMG_studies/hgcalsim/sim.RecoTask/closeby_1.0To100.0_idsmix_dR0.3_n5_rnd1_s1/prod5/reco_2327_n100.root")
-options.setDefault("inputFiles", "file:/eos/cms/store/user/kelong/ML4Reco/physprocttbar_x10_ttbar-1.0To-1.0_RECO_1.root")
+options.setDefault("inputFiles", "file:///eos/cms/store/cmst3/group/hgcal/CMG_studies/hgcalsim/sim.RecoTask/closeby_1.0To100.0_idsmix_dR0.3_n5_rnd1_s1/prod5/reco_2327_n100.root")
 options.setDefault('outputFile', 'file:windowntup.root')
 options.parseArguments()
 
@@ -59,7 +58,7 @@ process.load('Configuration.StandardSequences.FrontierConditions_GlobalTag_cff')
 
 # minimal configuration
 process.MessageLogger.cerr.FwkReport.reportEvery = 1
-process.maxEvents = cms.untracked.PSet(input=cms.untracked.int32(-1))
+process.maxEvents = cms.untracked.PSet(input=cms.untracked.int32(100))
 process.source = cms.Source("PoolSource", fileNames=cms.untracked.vstring(options.inputFiles))
 
 # global tag

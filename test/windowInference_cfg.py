@@ -30,7 +30,7 @@ if not os.path.exists(graph_path):
 
 # setup minimal options
 options = VarParsing("python")
-options.setDefault("inputFiles", "file:/eos/cms/store/user/kelong/ML4Reco/physprocttbar_x10_ttbar-1.0To-1.0_RECO_1.root")
+options.setDefault("inputFiles", "file:///eos/cms/store/cmst3/group/hgcal/CMG_studies/hgcalsim/sim.RecoTask/closeby_1.0To100.0_idsmix_dR0.3_n5_rnd1_s1/prod5/reco_2327_n100.root")
 options.parseArguments()
 
 # define the process to run for the Phase2 era
@@ -40,7 +40,7 @@ process = cms.Process("HGR", Phase2C8)
 # standard sequences and modules
 process.load("Configuration.StandardSequences.Services_cff")
 process.load("FWCore.MessageService.MessageLogger_cfi")
-process.load("Configuration.Geometry.GeometryExtended2026D43Reco_cff")
+process.load("Configuration.Geometry.GeometryExtended2023D41Reco_cff")
 process.load("Configuration.StandardSequences.FrontierConditions_GlobalTag_cff")
 
 # minimal configuration
@@ -49,8 +49,8 @@ process.maxEvents = cms.untracked.PSet(input=cms.untracked.int32(10))
 process.source = cms.Source("PoolSource", fileNames=cms.untracked.vstring(options.inputFiles))
 
 # global tag
-#from Configuration.AlCa.GlobalTag import GlobalTag
-#process.GlobalTag = GlobalTag(process.GlobalTag, "auto:phase2_realistic", "")
+from Configuration.AlCa.GlobalTag import GlobalTag
+process.GlobalTag = GlobalTag(process.GlobalTag, "auto:phase2_realistic", "")
 
 # process options
 process.options = cms.untracked.PSet(
