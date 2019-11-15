@@ -121,6 +121,7 @@ WindowNTupler::WindowNTupler(const edm::ParameterSet& config)
 
     for(auto& w: windows_)
         w.setMode(WindowBase::useRechits);//FIXME make configurable
+        //w.setMode(WindowBase::useLayerClusters);//FIXME make configurable
 
 }
 
@@ -154,10 +155,13 @@ WindowNTupler::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
    std::vector<HGCRecHitWithPos> allrechits;
    for (auto & token : rechitsTokens_) {
        for (const auto& rh : iEvent.get(token)) {
-           HGCRecHitWithPos rhp = { &rh, recHitTools_.getPosition(rh.detid()) };
+           HGCRecHitWithPos rhp = { const_cast<HGCRecHit*>(&rh), recHitTools_.getPosition(rh.detid()) };
            allrechits.push_back(rhp);
        }
    }
+   std::sort(allrechits.begin(), allrechits.end(), 
+        [](const HGCRecHitWithPos& rh1, const HGCRecHitWithPos& rh2) 
+            { return rh1.hit->energy() > rh2.hit->energy();});
 
    auto inlayerclusters = iEvent.get(layerClustersToken_);
    auto insimclusters = iEvent.get(simClusterToken_);
@@ -206,6 +210,7 @@ WindowNTupler::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
 
        //the follwing will not work yet before everything is filled
        window.fillFeatureArrays();
+       window.flattenRechitFeatures();
        window.fillTruthArrays();
        window.assignTreePointers();
 

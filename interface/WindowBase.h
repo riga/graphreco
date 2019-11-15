@@ -27,10 +27,9 @@
 #define DEBUGPRINT(x) {std::cout << #x << ": " << x << std::endl;}
 
 struct HGCRecHitWithPos{
-    const HGCRecHit * hit;
-    const GlobalPoint  pos;
+    HGCRecHit * hit;
+    GlobalPoint  pos;
 };
-
 
 
 class WindowBase {

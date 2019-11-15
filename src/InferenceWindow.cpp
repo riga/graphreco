@@ -50,6 +50,7 @@ void InferenceWindow::fillFeatureArrays(){
     //do some zero padding if needed
 
     //FIXME
+
 }
 
 void InferenceWindow::setupTFInterface(size_t padSize, size_t nFeatures, bool batchedModel,

@@ -30,6 +30,8 @@ public:
 
     void getOutput() const{}//needs output format etc.
 
+    void flattenRechitFeatures();
+
     static std::vector<InferenceWindow> createWindows(size_t nSegmentsPhi,
             size_t nSegmentsEta, double minEta, double maxEta, double frameWidthEta,
             double frameWidthPhi);
@@ -43,7 +45,6 @@ private:
     tensorflow::NamedTensorList inputTensorList;
     tensorflow::Tensor outputTensor;
     std::string outputTensorName_;
-
 
 };
 

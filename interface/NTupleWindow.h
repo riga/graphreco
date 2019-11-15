@@ -27,6 +27,7 @@ public:
     void fillTruthArrays();
     //2
     void assignTreePointers() ;
+    void flattenRechitFeatures();
 
     //3: tree->Fill();
 
@@ -53,6 +54,18 @@ private:
 
     //can be layer clusters or rechits according to mode
     std::vector<std::vector<float> >  hitFeatures_; //this includes tracks!
+    std::vector<float> recHitEnergy_;
+    std::vector<float> recHitEta_;
+    std::vector<float> recHitRelPhi_;
+    std::vector<float> recHitTheta_;
+    std::vector<float> recHitMag_;
+    std::vector<float> recHitX_;
+    std::vector<float> recHitY_;
+    std::vector<float> recHitZ_;
+    std::vector<float> recHitDetID_;
+    std::vector<float> recHitTime_;
+    std::vector<float> recHitID_;
+    std::vector<float> recHitPad_;
 
     std::vector<std::vector<float> >  truthHitFractions_;
 
@@ -78,8 +91,23 @@ private:
 
     float windowEta_, windowPhi_;
 
+    static const bool flattenRechitFeatures_ = true;
+    enum rhLables {kEnergy, kEta, kRelPhi, kTheta, kMag, kx, ky, kz, kDetid, kTime, kId, kPad};
     //static pointers to create branches and fill tree
-    static std::vector<std::vector<float> > * sp_hitFeatures_;
+    static std::vector<std::vector<float>> * sp_hitFeatures_;
+    static std::vector<float> * sp_recHitEnergy_;
+    static std::vector<float> * sp_recHitEta_;
+    static std::vector<float> * sp_recHitRelPhi_;
+    static std::vector<float> * sp_recHitTheta_;
+    static std::vector<float> * sp_recHitMag_;
+    static std::vector<float> * sp_recHitX_;
+    static std::vector<float> * sp_recHitY_;
+    static std::vector<float> * sp_recHitZ_;
+    static std::vector<float> * sp_recHitDetID_;
+    static std::vector<float> * sp_recHitTime_;
+    static std::vector<float> * sp_recHitID_;
+    static std::vector<float> * sp_recHitPad_;
+    //static std::vector<float> * sp_trackFeatures_;
 
     static std::vector<std::vector<float> > * sp_truthHitFractions_;
     static std::vector<int>                 * sp_truthHitAssignementIdx_;
