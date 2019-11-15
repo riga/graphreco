@@ -386,7 +386,7 @@ void NTupleWindow::fillTruthAssignment(){
         truthHitAssignedEnergies_.at(i_hit) = truthSimclusterEnergies_.at(
                 maxfrac_idx);
         truthHitAssignedEtas_.at(i_hit) = truthSimclusterEtas_.at(maxfrac_idx);
-        truthHitAssignedPhis_.at(i_hit) = truthSimclusterPhis_.at(maxfrac_idx);
+        truthHitAssignedPhis_.at(i_hit) = reco::deltaPhi(truthSimclusterPhis_.at(maxfrac_idx), getCenterPhi());
         truthHitAssignedPIDs_.at(i_hit) = truthSimclusterPIDs_.at(maxfrac_idx);
 
     }
