@@ -61,7 +61,7 @@ public:
     bool maybeAddTrack(const TrackWithHGCalPos& t) {
         //potential cuts here!
         if (accept((float)t.pos.phi(), (float)t.pos.eta())
-                && t.track->pt()>1) {
+                && t.obj->pt()>1) {
             tracks_.push_back(&t);
             return true;
         }

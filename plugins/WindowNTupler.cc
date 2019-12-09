@@ -148,7 +148,7 @@ WindowNTupler::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
    auto intracks = iEvent.get(tracksToken_);
    for(const auto& t: intracks){
        if(fabs(t.eta())< 1.5 || fabs(t.eta())>3.0) continue; //just use potentially interesting ones
-       proptracks.push_back(trackprop_.propagateTrack(t));
+       proptracks.push_back(trackprop_.propagateObject(t));
    }
 
    //get rechits, get positions and merge collections

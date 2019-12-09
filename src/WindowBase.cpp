@@ -58,7 +58,7 @@ void WindowBase::clear() {
 
 const size_t WindowBase::nTrackFeatures_=12;
 void WindowBase::fillTrackFeatures(float*& data, const TrackWithHGCalPos * t) const {
-    *(data++) = t->track->p();
+    *(data++) = t->obj->p();
     *(data++) = t->pos.eta();
     *(data++) = reco::deltaPhi(t->pos.phi(), getCenterPhi());
     *(data++) = t->pos.theta();
@@ -66,8 +66,8 @@ void WindowBase::fillTrackFeatures(float*& data, const TrackWithHGCalPos * t) co
     *(data++) = t->pos.x();
     *(data++) = t->pos.y();
     *(data++) = t->pos.z();
-    *(data++) = t->track->charge();
-    *(data++) = t->track->chi2();
+    *(data++) = t->obj->charge();
+    *(data++) = t->obj->chi2();
     *(data++) = -1.; //track ID bit
     *(data++) = 0.; //pad
 }
