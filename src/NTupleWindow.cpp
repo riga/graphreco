@@ -455,8 +455,8 @@ void NTupleWindow::fillTruthAssignment(){
         truthHitAssignedY_.at(i_hit) = truthSimclusterY_.at(maxfrac_idx);
         truthHitAssignedZ_.at(i_hit) = truthSimclusterZ_.at(maxfrac_idx);
         truthHitAssignedPIDs_.at(i_hit) = truthSimclusterPIDs_.at(maxfrac_idx);
-        truthHitAssignedDirX_.at(i_hit) = truthSimclusterDirY_.at(maxfrac_idx);
-        truthHitAssignedDirY_.at(i_hit) = truthSimclusterDirX_.at(maxfrac_idx);
+        truthHitAssignedDirX_.at(i_hit) = truthSimclusterDirX_.at(maxfrac_idx);
+        truthHitAssignedDirY_.at(i_hit) = truthSimclusterDirY_.at(maxfrac_idx);
         truthHitAssignedDirZ_.at(i_hit) = truthSimclusterDirZ_.at(maxfrac_idx);
         truthHitAssignedInner_.at(i_hit) = truthSimclusterInnerWindow_.at(maxfrac_idx);
 
