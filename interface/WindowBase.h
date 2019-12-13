@@ -90,8 +90,11 @@ public:
 
     inline bool maybeAddSimCluster(const SimCluster& sc){
         //potential cuts here!
-        if (accept(sc.phi(),sc.eta())){
+        if (accept(sc.impactPoint().phi(),sc.impactPoint().eta())){
             simClusters_.push_back(&sc);
+            simClustersInnerWindow_.push_back(isInner(sc.impactPoint().eta(),
+                    sc.impactPoint().phi()));
+
             return true;
         }
         return false;
@@ -166,6 +169,7 @@ protected:
     std::vector<const HGCRecHitWithPos *> recHits;
     std::vector<const reco::CaloCluster * > layerClusters_;
     std::vector<const SimCluster*> simClusters_;
+    std::vector<bool> simClustersInnerWindow_;
 
     //for one track
     void fillTrackFeatures(float*& data, const TrackWithHGCalPos *) const;

@@ -78,6 +78,7 @@ private:
     std::vector<float>               truthHitAssignedEtas_;
     //truth delta-phi to window center of assigned simcluster
     std::vector<float>               truthHitAssignedPhis_;
+    std::vector<float>               truthHitAssignedInner_;
     //truth energy of assigned simcluster
     std::vector<std::vector<int> >   truthHitAssignedPIDs_;
 
@@ -86,6 +87,11 @@ private:
     std::vector<float>   truthSimclusterEnergies_;
     std::vector<float>   truthSimclusterEtas_;
     std::vector<float>   truthSimclusterPhis_;
+    std::vector<float>   truthSimclusterT_;
+    std::vector<float>   truthSimclusterDirPhi_;
+    std::vector<float>   truthSimclusterDirEta_;
+    std::vector<float>   truthSimclusterDirR_;
+    std::vector<float>   truthSimclusterInnerWindow_;
 
     //some globals mostly for plotting
 
@@ -115,12 +121,19 @@ private:
     static std::vector<float>               * sp_truthHitAssignedEtas_;
     static std::vector<float>               * sp_truthHitAssignedPhis_;
     static std::vector<std::vector<int> >   * sp_truthHitAssignedPIDs_;
+    static std::vector<float> * sp_truthHitAssignedInner_;
 
     static std::vector<int>    * sp_truthSimclusterIdx_;
     static std::vector<std::vector<int> >   * sp_truthSimclusterPIDs_;
     static std::vector<float>  * sp_truthSimclusterEnergies_;
     static std::vector<float>  * sp_truthSimclusterEtas_;
     static std::vector<float>  * sp_truthSimclusterPhis_;
+    static std::vector<float>  * sp_truthSimclusterT_;
+    static std::vector<float>  * sp_truthSimclusterInnerWindow_;
+
+    static std::vector<float>  * sp_truthSimclusterDirEta_;
+    static std::vector<float>  * sp_truthSimclusterDirPhi_;
+    static std::vector<float>  * sp_truthSimclusterDirR_;
 
     static float * sp_windowEta_;
     static float * sp_windowPhi_;

@@ -22,7 +22,9 @@ WindowNTupler = cms.EDAnalyzer("WindowNTupler",
     ),
     tracks = cms.InputTag("generalTracks"),
     layerClusters = cms.InputTag("hgcalLayerClusters"),
-    simClusters = cms.InputTag("mix", "RealisticCaloTruth"),
+    #simClusters = cms.InputTag("mix", "RealisticCaloTruth"),
+    simClusters = cms.InputTag("mix", "MergedCaloTruth"),
+    
     
     minEta=cms.double(1.6),
     maxEta=cms.double(3.0),

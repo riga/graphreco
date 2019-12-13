@@ -9,6 +9,8 @@
 <use   name="TrackingTools/Records"/>
 <use   name="DataFormats/HGCRecHit"/>
 
+  <use   name="SimGeneral/HepPDTRecord"/>
+  <use   name="TrackPropagation/RungeKutta"/>
 <export>
   <lib   name="1"/>
 </export>

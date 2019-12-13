@@ -31,12 +31,18 @@ std::vector<float>               * NTupleWindow::sp_truthHitAssignedEnergies_=0;
 std::vector<float>               * NTupleWindow::sp_truthHitAssignedEtas_=0;
 std::vector<float>               * NTupleWindow::sp_truthHitAssignedPhis_=0;
 std::vector<std::vector<int> >   * NTupleWindow::sp_truthHitAssignedPIDs_=0;
+std::vector<float>               * NTupleWindow::sp_truthHitAssignedInner_=0;
 
 std::vector<int>    * NTupleWindow::sp_truthSimclusterIdx_=0;
 std::vector<std::vector<int> >   * NTupleWindow::sp_truthSimclusterPIDs_=0;
 std::vector<float>  * NTupleWindow::sp_truthSimclusterEnergies_=0;
 std::vector<float>  * NTupleWindow::sp_truthSimclusterEtas_=0;
 std::vector<float>  * NTupleWindow::sp_truthSimclusterPhis_=0;
+std::vector<float>  * NTupleWindow::sp_truthSimclusterInnerWindow_=0;
+std::vector<float>  * NTupleWindow::sp_truthSimclusterT_=0;
+std::vector<float>  * NTupleWindow::sp_truthSimclusterDirEta_=0;
+std::vector<float>  * NTupleWindow::sp_truthSimclusterDirPhi_=0;
+std::vector<float>  * NTupleWindow::sp_truthSimclusterDirR_=0;
 
 
 float * NTupleWindow::sp_windowEta_=0;
@@ -81,12 +87,19 @@ void NTupleWindow::createTreeBranches(TTree* t){
     t->Branch("truthHitAssignedEtas", &sp_truthHitAssignedEtas_);
     t->Branch("truthHitAssignedPhis", &sp_truthHitAssignedPhis_);
     t->Branch("truthHitAssignedPIDs", &sp_truthHitAssignedPIDs_);
+    t->Branch("truthHitAssignedInner", &sp_truthHitAssignedInner_);
 
     t->Branch("truthSimclusterIdx",&sp_truthSimclusterIdx_);
     t->Branch("truthSimclusterPIDs",&sp_truthSimclusterPIDs_);
     t->Branch("truthSimclusterEnergies",&sp_truthSimclusterEnergies_);
     t->Branch("truthSimclusterEtas",&sp_truthSimclusterEtas_);
     t->Branch("truthSimclusterPhis",&sp_truthSimclusterPhis_);
+    t->Branch("truthSimclusterInnerWindow",&sp_truthSimclusterInnerWindow_);
+    t->Branch("truthSimclusterT",&sp_truthSimclusterT_);
+
+    t->Branch("truthSimclusterDirEta",&sp_truthSimclusterDirEta_);
+    t->Branch("truthSimclusterDirPhi",&sp_truthSimclusterDirPhi_);
+    t->Branch("truthSimclusterDirR",&sp_truthSimclusterDirR_);
 
     t->Branch("windowEta",sp_windowEta_);
     t->Branch("windowPhi",sp_windowPhi_);
@@ -151,12 +164,19 @@ void NTupleWindow::assignTreePointers()  {
     sp_truthHitAssignedEtas_ = &truthHitAssignedEtas_;
     sp_truthHitAssignedPhis_ = &truthHitAssignedPhis_;
     sp_truthHitAssignedPIDs_ = &truthHitAssignedPIDs_;
+    sp_truthHitAssignedInner_ = &truthHitAssignedInner_;
 
     sp_truthSimclusterIdx_ = &truthSimclusterIdx_;
     sp_truthSimclusterPIDs_ = &truthSimclusterPIDs_;
     sp_truthSimclusterEnergies_ = &truthSimclusterEnergies_;
     sp_truthSimclusterEtas_ = &truthSimclusterEtas_;
     sp_truthSimclusterPhis_ = &truthSimclusterPhis_;
+    sp_truthSimclusterInnerWindow_ = &truthSimclusterInnerWindow_;
+    sp_truthSimclusterT_ = &truthSimclusterT_;
+
+    sp_truthSimclusterDirEta_=&truthSimclusterDirEta_;
+    sp_truthSimclusterDirPhi_=&truthSimclusterDirPhi_;
+    sp_truthSimclusterDirR_=&truthSimclusterDirR_;
 
     sp_windowEta_ = &windowEta_;
     sp_windowPhi_ = &windowPhi_;
@@ -190,13 +210,19 @@ void NTupleWindow::clear(){
     truthHitAssignedEtas_.clear();
     truthHitAssignedPhis_.clear();
     truthHitAssignedPIDs_.clear();
+    truthHitAssignedInner_.clear();
 
     truthSimclusterIdx_.clear();
     truthSimclusterPIDs_.clear();
     truthSimclusterEnergies_.clear();
     truthSimclusterEtas_.clear();
     truthSimclusterPhis_.clear();
+    truthSimclusterInnerWindow_.clear();
+    truthSimclusterT_.clear();
 
+    truthSimclusterDirEta_.clear();
+    truthSimclusterDirPhi_.clear();
+    truthSimclusterDirR_.clear();
 
 
 }
@@ -221,13 +247,15 @@ void NTupleWindow::fillFeatureArrays(){
             hitFeatures_.push_back(feats);
         }
     }
+
+    return;
     //add tracks LAST!
-    //for(const auto& tr:tracks_){
-    //    std::vector<float> feats(nTrackFeatures_);
-    //    auto data = &feats.at(0);
-    //    fillTrackFeatures(data,tr);
-    //    hitFeatures_.push_back(feats);
-    //}
+    for(const auto& tr:tracks_){
+        std::vector<float> feats(nTrackFeatures_);
+        auto data = &feats.at(0);
+        fillTrackFeatures(data,tr);
+        hitFeatures_.push_back(feats);
+    }
 
 }
 
@@ -269,15 +297,27 @@ void NTupleWindow::calculateSimclusterFeatures(){
     truthSimclusterEnergies_.clear();
     truthSimclusterEtas_.clear();
     truthSimclusterPhis_.clear();
+    truthSimclusterInnerWindow_.clear();
+    truthSimclusterT_.clear();
+    truthSimclusterDirPhi_.clear();
+    truthSimclusterDirEta_.clear();
+    truthSimclusterDirR_.clear();
 
 
     for(size_t i=0;i<simClusters_.size();i++){
         truthSimclusterIdx_.push_back(i);
         truthSimclusterPIDs_.push_back(pdgToOneHot(simClusters_.at(i)->pdgId()));
-        const auto& simCMomentum = simClusters_.at(i)->p4();
-        truthSimclusterEnergies_.push_back(simCMomentum.E());
-        truthSimclusterEtas_.push_back(simCMomentum.Eta());
-        truthSimclusterPhis_.push_back(simCMomentum.Phi());
+        truthSimclusterEtas_.push_back(simClusters_.at(i)->impactPoint().Eta());
+        truthSimclusterPhis_.push_back(reco::deltaPhi(simClusters_.at(i)->impactPoint().Phi(), getCenterPhi()));
+        truthSimclusterInnerWindow_.push_back(simClustersInnerWindow_.at(i) ? 1 : 0);
+
+        truthSimclusterT_.push_back(simClusters_.at(i)->impactPoint().T());
+        const math::XYZTLorentzVectorF& scimpactmom = simClusters_.at(i)->impactMomentum();
+        truthSimclusterEnergies_.push_back(simClusters_.at(i)->p4().E());
+        truthSimclusterDirPhi_.push_back(scimpactmom.Phi());
+        truthSimclusterDirEta_.push_back(scimpactmom.Eta());
+        truthSimclusterDirR_.push_back(scimpactmom.Vect().R());
+
     }
 }
 
@@ -302,9 +342,9 @@ void NTupleWindow::calculateTruthFractions(){
     }
 
     //associate the tracks here, such that they look like hits, simple matching
-    //size_t trackStartIterator = recHits.size();
-    //if(getMode() == useLayerClusters)
-    //    trackStartIterator = layerClusters_.size();
+    size_t trackStartIterator = recHits.size();
+    if(getMode() == useLayerClusters)
+        trackStartIterator = layerClusters_.size();
 
     ////match, will be improved by direct truth matching in new simclusters on longer term
     ////assumption: for every track there is charged simcluster
@@ -315,44 +355,42 @@ void NTupleWindow::calculateTruthFractions(){
     // */
     //std::vector<size_t> usedSimclusters;
 
-    //float debug_ntrackwithnoSC=0;
+    return ;
 
-    //for(size_t i_t=0;i_t<tracks_.size();i_t++){
+    float debug_ntrackwithnoSC=0;
 
-    //    const double momentumscaler = 0.0001;
-    //    double minDistance=0.1 + 0.1;
+    for(size_t i_t=0;i_t<tracks_.size();i_t++){
 
-    //    size_t matchedSCIdx=simClusters_.size();
-    //    double distance = 0;
-    //    for(size_t i_sc=0;i_sc<simClusters_.size();i_sc++){
-    //        if(fabs(simClusters_.at(i_sc)->charge())<0.1)
-    //            continue;
-    //        if(std::find(usedSimclusters.begin(),usedSimclusters.end(),i_sc) != usedSimclusters.end())
-    //            continue;
-    //        double scEnergy = simClusters_.at(i_sc)->p4().E();
-    //        double trackMomentum = tracks_.at(i_t)->track->p();
-    //        distance = reco::deltaR(simClusters_.at(i_sc)->eta(),
-    //                simClusters_.at(i_sc)->phi(),
-    //                (float)tracks_.at(i_t)->pos.eta(),
-    //                (float)tracks_.at(i_t)->pos.phi()) +
-    //                        momentumscaler*std::abs(scEnergy - trackMomentum)/(scEnergy);
+        const double momentumscaler = 0.0001;
+        double minDistance=0.1 + 0.1;
 
-    //        if(distance<minDistance){
-    //            matchedSCIdx=i_sc;
-    //            minDistance=distance;
-    //        }
-    //    }
-    //    if(matchedSCIdx<simClusters_.size()){
-    //        truthHitFractions_.at(i_t+trackStartIterator).at(matchedSCIdx) = 1.;
-    //        usedSimclusters.push_back(matchedSCIdx);
-    //    }
-    //    else{
-    //        debug_ntrackwithnoSC++;
-    //        DEBUGPRINT(distance);
-    //        DEBUGPRINT(tracks_.at(i_t)->track->p());
-    //        DEBUGPRINT(tracks_.at(i_t)->track->eta());
-    //    }
-    //}
+        size_t matchedSCIdx=simClusters_.size();
+        double distance = 0;
+        for(size_t i_sc=0;i_sc<simClusters_.size();i_sc++){
+
+            double scEnergy = simClusters_.at(i_sc)->impactMomentum().E();
+            double trackMomentum = tracks_.at(i_t)->obj->p();
+            distance = reco::deltaR(simClusters_.at(i_sc)->impactPoint().Eta(),
+                    simClusters_.at(i_sc)->impactPoint().Phi(),
+                    (float)tracks_.at(i_t)->pos.eta(),
+                    (float)tracks_.at(i_t)->pos.phi()) +
+                            momentumscaler*std::abs(scEnergy - trackMomentum)/(scEnergy);
+
+            if(distance<minDistance){
+                matchedSCIdx=i_sc;
+                minDistance=distance;
+            }
+        }
+        if(matchedSCIdx<simClusters_.size()){
+            truthHitFractions_.at(i_t+trackStartIterator).at(matchedSCIdx) = 1.;
+        }
+        else{
+            debug_ntrackwithnoSC++;
+            DEBUGPRINT(distance);
+            DEBUGPRINT(tracks_.at(i_t)->obj->p());
+            DEBUGPRINT(tracks_.at(i_t)->obj->eta());
+        }
+    }
     //DEBUGPRINT(debug_ntrackwithnoSC);
     //DEBUGPRINT(debug_ntrackwithnoSC/(float)tracks_.size());
 }
@@ -365,6 +403,7 @@ void NTupleWindow::fillTruthAssignment(){
     truthHitAssignedEtas_.resize(truthHitFractions_.size());
     truthHitAssignedPhis_.resize(truthHitFractions_.size());
     truthHitAssignedPIDs_.resize(truthHitFractions_.size());
+    truthHitAssignedInner_.resize(truthHitFractions_.size());
 
     bool nosim = simClusters_.size() < 1;
 
@@ -388,6 +427,7 @@ void NTupleWindow::fillTruthAssignment(){
         truthHitAssignedEtas_.at(i_hit) = truthSimclusterEtas_.at(maxfrac_idx);
         truthHitAssignedPhis_.at(i_hit) = reco::deltaPhi(truthSimclusterPhis_.at(maxfrac_idx), getCenterPhi());
         truthHitAssignedPIDs_.at(i_hit) = truthSimclusterPIDs_.at(maxfrac_idx);
+        truthHitAssignedInner_.at(i_hit) = truthSimclusterInnerWindow_.at(maxfrac_idx);
 
     }
 }

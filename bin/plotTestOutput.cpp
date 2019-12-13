@@ -11,28 +11,68 @@
 #include <iostream>
 
 
-/*
- *
- * The meaning of the hit features can be found in WindowBase.cpp
- * It is different for rechits, layer clusters, and tracks
- *
- */
-#define id_dx 10
-#define id_rechit ((float)0)
-#define id_layercluster ((float)1)
-#define id_track ((float)-1)
-enum rechitfeatures{rh_energy=0, rh_eta=1, rh_dphi=2}; // etc
-enum trackfeatures{tr_momentum=0, tr_eta=1, tr_dphi=2};
+TCanvas * projectRechitsEtaPhi(TTree* t,
+        const std::vector<float>  * rh_energy,
+        const std::vector<float>  * rh_eta,
+        const std::vector<float>  * rh_phi,
+        const std::vector<float>  * sc_eta,
+        const std::vector<float>  * sc_phi, int event){
 
-void mergeOverflow(TH1D* h){
-    auto bc = h->GetBinContent(h->GetNbinsX()+1);
-    h->SetBinContent(h->GetNbinsX(), h->GetBinContent(h->GetNbinsX())+ bc);
+    TCanvas * cv = new TCanvas();
+    float maxenergy = 0;
+    for(const auto& e:*rh_energy){
+        if(e>maxenergy)
+            maxenergy=e;
+    }
+
+    std::vector<int> colors = {kBlue,kCyan,kGreen,kOrange,kRed};
+    std::vector<float> sizes = {0.1,  0.3,  0.5,  0.7,     0.9};
+    std::vector<float> delim = {0.0, 0.02,  0.05,  0.1,  0.3,     1.0};
+
+    for(size_t i=0;i<colors.size();i++){
+
+        t->SetMarkerStyle(8);
+        t->SetMarkerColor(colors.at(i));
+        t->SetMarkerSize(sizes.at(i));
+
+        TString cutstr="recHitEnergy >";
+        cutstr+=delim.at(i)*maxenergy;
+        cutstr+= " && recHitEnergy <";
+        cutstr+=delim.at(i+1)*maxenergy;
+        if(i)
+            t->Draw("recHitEta:recHitRelPhi",cutstr,"same",1,event);
+        else
+            t->Draw("recHitEta:recHitRelPhi",cutstr,"",1,event);
+
+
+        //continue;
+
+    }
+    t->SetMarkerStyle(5);
+    t->SetMarkerSize(1);
+    t->SetMarkerColor(kBlack);
+    t->Draw("truthSimclusterEtas:truthSimclusterPhis","","same",1,event);
+
+
+    return cv;
 }
 
 
-int main(){
 
-    TFile f("testout.root","READ");
+
+
+
+int main(int argc, char* argv[]){
+
+    if(argc<2)
+        return -1;
+    TString infile = argv[1];
+
+    int maxevents=10;
+    if(argc>2)
+        maxevents=atoi(argv[2]);
+
+    TFile f(infile,"READ");
     TTree * tree = (TTree *)f.Get("WindowNTupler/tree");
     if(!tree || tree->IsZombie())
         return -1;
@@ -40,48 +80,37 @@ int main(){
 
     std::cout << "nentries " << nentries << std::endl;
 
-    std::vector<std::vector<float> > * hitFeatures=0, * truthHitFractions=0;
-    tree->SetBranchAddress("hitFeatures",&hitFeatures);
-    tree->SetBranchAddress("truthHitFractions",&truthHitFractions);
-    std::vector<int> * truthHitAssignementIdx=0;
-    tree->SetBranchAddress("truthHitAssignementIdx",&truthHitAssignementIdx);
 
-    TH1D noisefractions("noisefractions","noisefractions",10,0,1);
-    TH2D noisefractions_perenergy("noisefractions_perenergy","noisefractions_perenergy",5,0,1,5,0,100);
-
-    TH1D nhits("nhits","nhits",10,0,10000);
-
-    for(int entry=0;entry<nentries; entry++){
-        tree->GetEntry(entry);
-        double noiseenergy=0;
-        double totalenergy=0;
-        for(size_t i=0;i<hitFeatures->size();i++){
-            totalenergy+=hitFeatures->at(i).at(rh_energy);
-            if(truthHitAssignementIdx->at(i) < 0){
-                noiseenergy+=hitFeatures->at(i).at(rh_energy);
-            }
+    std::vector<float>  * recHitEnergy=0, * recHitEta=0, * recHitRelPhi=0, * truthSimclusterEtas=0, * truthSimclusterPhis=0;
 
 
-        }
-        noisefractions.Fill(noiseenergy/totalenergy);
-        noisefractions_perenergy.Fill(noiseenergy/totalenergy, totalenergy);
-        nhits.Fill(hitFeatures->size());
+    tree->SetBranchAddress("recHitEnergy", &recHitEnergy);
+    tree->SetBranchAddress("recHitEta", &recHitEta);
+    tree->SetBranchAddress("recHitRelPhi", &recHitRelPhi);
+    tree->SetBranchAddress("truthSimclusterEtas",&truthSimclusterEtas);
+    tree->SetBranchAddress("truthSimclusterPhis",&truthSimclusterPhis);
 
+    TFile fout("outfile.root","RECREATE");
+    for(int event=0; event < nentries;event++){
+        if(event>maxevents)
+            break;
+        tree->GetEntry(event);
+
+        auto * cv = projectRechitsEtaPhi(tree,recHitEnergy,recHitEta,recHitRelPhi,truthSimclusterEtas,truthSimclusterPhis,event);
+
+        TString outname="projectedEtaPhi";
+        outname+=event;
+        cv->SetTitle(outname);
+        cv->SetName(outname);
+        outname+=".pdf";
+        cv->Print(outname);
+        cv->Write();
+        delete cv;
     }
+    fout.Close();
 
-    mergeOverflow(&noisefractions);
-    mergeOverflow(&nhits);
+return 0;
 
-    TCanvas cv;
-    noisefractions.Draw();
-    cv.Print("noisefractions.pdf");
-    noisefractions_perenergy.Draw("colz");
-    cv.Print("noisefractions_perenergy.pdf");
-    nhits.Draw();
-    cv.Print("nhits.pdf");
 }
 
 
-void plotOutput(){
-    main();
-}
