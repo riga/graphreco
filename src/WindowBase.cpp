@@ -62,7 +62,7 @@ void WindowBase::fillTrackFeatures(float*& data, const TrackWithHGCalPos * t) co
     *(data++) = t->pos.eta();
     *(data++) = reco::deltaPhi(t->pos.phi(), getCenterPhi());
     *(data++) = t->pos.theta();
-    *(data++) = t->pos.transverse();
+    *(data++) = t->pos.mag();
     *(data++) = t->pos.x();
     *(data++) = t->pos.y();
     *(data++) = t->pos.z();
@@ -78,7 +78,7 @@ void WindowBase::fillRecHitFeatures(float*& data, const HGCRecHitWithPos * recHi
     *(data++) = recHit->pos.eta();
     *(data++) = reco::deltaPhi(recHit->pos.phi(), getCenterPhi());
     *(data++) = recHit->pos.theta();
-    *(data++) = recHit->pos.transverse();
+    *(data++) = recHit->pos.mag();
     *(data++) = recHit->pos.x();
     *(data++) = recHit->pos.y();
     *(data++) = recHit->pos.z();
