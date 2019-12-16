@@ -77,6 +77,7 @@ process.TFileService = cms.Service("TFileService", fileName = cms.string(
 # load and configure the windowInference module
 from RecoHGCal.GraphReco.windowNTupler_cfi import WindowNTupler
 process.WindowNTupler = WindowNTupler.clone()
+process.WindowNTuplerDefaultTruth = WindowNTupler.clone()
 
 process.hgcSimTruth = cms.EDProducer("HGCTruthProducer",
 )
@@ -86,4 +87,4 @@ process.WindowNTupler.simClusters = "hgcSimTruth"
 process.hgcSimTruthSequence = cms.Sequence(process.hgcSimTruth)
 process.dump=cms.EDAnalyzer('EventContentAnalyzer')
 # define the path to run
-process.p = cms.Path(process.hgcSimTruthSequence * process.WindowNTupler)
+process.p = cms.Path(process.hgcSimTruthSequence * process.WindowNTupler * process.WindowNTuplerDefaultTruth)
