@@ -30,7 +30,7 @@ if not os.path.exists(graph_path):
 
 # setup minimal options
 options = VarParsing("python")
-options.setDefault("inputFiles", "file:///eos/cms/store/cmst3/group/hgcal/CMG_studies/mrieger/hgcalsim/RecoTask/closeby_1.0To100.0_idsmix_dR0.1_n10_rnd1_s1/dev1_converter/reco_0_n2.root")  # noqa: E501
+options.setDefault("inputFiles", "file:///eos/cms/store/cmst3/group/hgcal/CMG_studies/hgcalsim/sim.RecoTask/closeby_1.0To100.0_idsmix_dR0.3_n5_rnd1_s1/prod5/reco_2327_n100.root")
 options.parseArguments()
 
 # define the process to run for the Phase2 era
